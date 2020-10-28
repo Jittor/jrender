@@ -93,7 +93,7 @@ class SoftRenderer(nn.Module):
 
     def render_mesh(self, mesh, mode=None):
         self.set_texture_mode(mesh.texture_type)
-        mesh = self.lighting(mesh)
+        mesh = self.lighting(mesh, self.transform.eyes)
         mesh = self.transform(mesh)
         return self.rasterizer(mesh, mode)
 

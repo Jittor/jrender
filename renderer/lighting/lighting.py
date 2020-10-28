@@ -91,7 +91,7 @@ class Lighting(nn.Module):
                                                                color_directionals,
                                                                directions)])
 
-    def execute(self, mesh):
+    def execute(self, mesh, eyes=None):
         if self.light_mode == 'surface':
             light = jt.zeros(mesh.faces.shape)
             light = self.ambient(light)

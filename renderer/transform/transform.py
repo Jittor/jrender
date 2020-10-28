@@ -104,4 +104,4 @@ class Transform(nn.Module):
 
     @property
     def eyes(self):
-        return self.transformer._eyes
+        return self.transformer._eye

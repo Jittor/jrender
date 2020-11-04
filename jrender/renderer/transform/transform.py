@@ -8,22 +8,26 @@ from ..utils import *
 from . import *
 
 class Projection(nn.Module):
-    def __init__(self, P, dist_coeffs=None, orig_size=512):
+    def __init__(self, K, R, t, dist_coeffs=None, orig_size=512):
         super(Projection, self).__init__()
 
-        self.P = P
+        self.K = K
+        self.R = R
+        self.t = t
         self.dist_coeffs = dist_coeffs
         self.orig_size = orig_size
 
-        if isinstance(self.P, np.ndarray):
-            self.P = jt.array(self.P)
-        if self.P is None or len(self.P.shape) != 3 or self.P.shape[1] != 3 or self.P.shape[2] != 4:
-            raise ValueError('You need to provide a valid (batch_size)x3x4 projection matrix')
+        if isinstance(self.K, np.ndarray):
+            self.K = jt.array(self.K).float32()
+        if isinstance(self.R, np.ndarray):
+            self.R = jt.array(self.R).float32()
+        if isinstance(self.t, np.ndarray):
+            self.t = jt.array(self.t).float32()
         if dist_coeffs is None:
-            self.dist_coeffs = jt.array([[0., 0., 0., 0., 0.]]).repeat(self.P.shape[0], 1)
+            self.dist_coeffs = jt.array([[0., 0., 0., 0., 0.]]).repeat(self.K.shape[0], 1)
 
     def execute(self, vertices):
-        vertices = projection(vertices, self.P, self.dist_coeffs, self.orig_size)
+        vertices = projection(vertices, self.K, self.R, self.t, self.dist_coeffs, self.orig_size)
         return vertices
 
 
@@ -73,14 +77,14 @@ class Look(nn.Module):
 
 
 class Transform(nn.Module):
-    def __init__(self, camera_mode='projection', P=None, dist_coeffs=None, orig_size=512,
+    def __init__(self, camera_mode='projection', K=None, R=None, t=None, dist_coeffs=None, orig_size=512,
                  perspective=True, viewing_angle=30, viewing_scale=1.0, 
                  eye=None, camera_direction=[0,0,1]):
         super(Transform, self).__init__()
 
         self.camera_mode = camera_mode
         if self.camera_mode == 'projection':
-            self.transformer = Projection(P, dist_coeffs, orig_size)
+            self.transformer = Projection(K, R, t, dist_coeffs, orig_size)
         elif self.camera_mode == 'look':
             self.transformer = Look(perspective, viewing_angle, viewing_scale, eye, camera_direction)
         elif self.camera_mode == 'look_at':

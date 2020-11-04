@@ -6,6 +6,7 @@ import numpy
 from .lighting import *
 from .transform import *
 from .dr import *
+from ..structures import *
 
 class Renderer(nn.Module):
     def __init__(self, image_size=256, background_color=[0,0,0], near=1, far=100, 
@@ -14,7 +15,7 @@ class Renderer(nn.Module):
                  gamma_val=1e-4, aggr_func_rgb='softmax', aggr_func_alpha='prod',
                  texture_type='surface',
                  camera_mode='look_at',
-                 P=None, dist_coeffs=None, orig_size=512,
+                 K=None, R=None, t=None, dist_coeffs=None, orig_size=512,
                  perspective=True, viewing_angle=30, viewing_scale=1.0, 
                  eye=None, camera_direction=[0,0,1],
                  light_mode='surface',
@@ -30,7 +31,7 @@ class Renderer(nn.Module):
 
         # camera
         self.transform = Transform(camera_mode, 
-                                      P, dist_coeffs, orig_size,
+                                      K, R, t, dist_coeffs, orig_size,
                                       perspective, viewing_angle, viewing_scale, 
                                       eye, camera_direction)
 

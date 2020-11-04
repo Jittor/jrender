@@ -14,7 +14,6 @@
 ### 示例1 使用2种不同的可微渲染器SoftRas和N3MR进行渲染
 
 '''python
-
     import jrender as jr
 
     # create a mesh object from args.filename_input
@@ -34,7 +33,6 @@
 切换N3MR渲染器，只需要将dr_type全部换成n3mr即可。
 
 '''python
-
     import jrender as jr
 
     # create a mesh object from args.filename_input
@@ -66,7 +64,6 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
 
 ### 示例2 利用可微渲染器将球形变为飞机
 '''python
-
     import jrender as jr
     from jrender import neg_iou_loss, LaplacianLoss, FlattenLoss
 
@@ -121,7 +118,7 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
 
 <img src="data/imgs/n3mr-deform.gif" width="250" style="max-width:50%;">
 
-### 使用Jrender进行人脸重建
+### 示例3 使用Jrender进行人脸重建
 
 我们在Jrender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
 

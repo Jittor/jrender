@@ -3,7 +3,7 @@ import jittor as jt
 import numpy as np
 from skimage.io import imread
 
-from .utils import load_textures as load_textures_cuda
+from .load_textures import _load_textures_for_softras
 
 def load_mtl(filename_mtl):
     '''
@@ -92,7 +92,7 @@ def load_textures(filename_obj, filename_mtl, texture_res):
         image = jt.array(image.copy()).float32()
         is_update = (np.array(material_names) == material_name).astype(np.int32)
         is_update = jt.array(is_update).int()
-        textures = load_textures_cuda.load_textures(image, faces, textures, is_update)
+        textures = _load_textures_for_softras(image, faces, textures, is_update)
     return textures
 
 def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=4, texture_type='surface'):
@@ -129,7 +129,7 @@ def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=
                 v2 = int(vs[i + 2].split('/')[0])
                 faces.append((v0, v1, v2))
     faces = jt.array(np.vstack(faces).astype(np.int32)).float32() - 1
-
+    
     # load textures
     if load_texture and texture_type == 'surface':
         textures = None
@@ -153,7 +153,6 @@ def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=
         vertices /= jt.abs(vertices).max()
         vertices *= 2
         vertices -= vertices.max(0) / 2
-
     if load_texture:
         return vertices, faces, textures
     else:

@@ -26,7 +26,6 @@ def create_texture_image(textures, texture_res=16):
     image = image.numpy()
     vertices = vertices.numpy()
     image = image[::-1, ::1]
-
     return image, vertices
 
 def save_obj(filename, vertices, faces, textures=None, texture_res=16, texture_type='surface'):

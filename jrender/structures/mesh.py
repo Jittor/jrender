@@ -6,11 +6,40 @@ from .utils import *
 
 class Mesh(object):
     '''
-    A simple class for creating and manipulating trimesh objects
+    A class for creating and manipulating trimesh objects.
+    
+    Attributes:
+        * vertices: [batch_size, num_vertices, 3]
+        * faces: [batch_size, num_faces, 3]
+        * textures: 
+            - if dr_type is 'softras': 
+                - if texture_type is 'surface', textures' shape is [batch_size, num_faces, texture_res ** 2, 3] 
+                - if texture_type is 'vertex', textures' shape is [batch_size, num_vertices, 3] 
+            - if dr_type is 'n3mr': 
+                - textures' shape is [batch_size, num_faces, texture_res, texture_res, texture_res, 3] 
+        * face_vertices: [batch_size, num_faces, 3, 3]
+        * face_textures: 
+            - if dr_type is 'softras': 
+                - if texture_type is 'surface', face_textures' shape is [batch_size, num_faces, texture_res ** 2, 3] 
+                - if texture_type is 'vertex', face_textures' shape is [batch_size, num_faces, 3] 
+            - if dr_type is 'n3mr': 
+                - face_textures' shape is [batch_size, num_faces, texture_res, texture_res, texture_res, 3] 
+        * surface_normals: the normals of all surfaces. Shape is [batch_size, num_faces, 3]
+        * vertex_normals: the normals of all vertices. Shape is [batch_size, num_vertices, 3]
+
+    Functions:
+        faces: set faces
+        vertices: set vertices
+        textures: set textures
+        fill_back_: fill the back of all triangles
+        reset_: reset vertices, faces, textures to their origin created values
+        from_obj: create a mesh from one .obj file
+        save_obj: save a mesh to one .obj file
+        voxelize: voxelize the vertices to voxel space
     '''
-    def __init__(self, vertices, faces, textures=None, texture_res=1, texture_type='surface'):
+    def __init__(self, vertices, faces, textures=None, texture_res=1, texture_type='surface', dr_type='softras'):
         '''
-        vertices, faces and textures(if not None) are expected to be Tensor objects
+        vertices, faces and textures (if not None) are expected to be Tensor objects
         '''
         self._vertices = vertices
         self._faces = faces
@@ -38,11 +67,15 @@ class Mesh(object):
         self._vertex_normals_update = True
 
         self._fill_back = False
+        self.dr_type = dr_type
 
         # create textures
         if textures is None:
             if texture_type == 'surface':
-                self._textures = jt.ones((self.batch_size, self.num_faces, texture_res**2, 3))
+                if self.dr_type == 'softras':
+                    self._textures = jt.ones((self.batch_size, self.num_faces, texture_res**2, 3))
+                elif self.dr_type == 'n3mr':
+                    self._textures = jt.ones((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 3))
                 self.texture_res = texture_res
             elif texture_type == 'vertex':
                 self._textures = jt.ones((self.batch_size, self.num_vertices, 3))
@@ -53,6 +86,8 @@ class Mesh(object):
             if len(textures.shape) == 3 and texture_type == 'surface':
                 textures = textures.unsqueeze(0)
             if len(textures.shape) == 2 and texture_type == 'vertex':
+                textures = textures.unsqueeze(0)
+            if len(textures.shape) == 5:
                 textures = textures.unsqueeze(0)
             self._textures = textures
             self.texture_res = int(np.sqrt(self._textures.shape[2]))
@@ -141,23 +176,26 @@ class Mesh(object):
         self._fill_back = False
     
     @classmethod
-    def from_obj(cls, filename_obj, normalization=False, load_texture=False, texture_res=1, texture_type='surface'):
+    def from_obj(cls, filename_obj, normalization=False, load_texture=False, dr_type='softras', texture_res=1, texture_type='surface', texture_wrapping='REPEAT', use_bilinear=True):
         '''
         Create a Mesh object from a .obj file
         '''
         if load_texture:
             vertices, faces, textures = load_obj(filename_obj,
-                                                     normalization=normalization,
-                                                     texture_res=texture_res,
-                                                     load_texture=True,
-                                                     texture_type=texture_type)
+                                                normalization=normalization,
+                                                texture_res=texture_res,
+                                                load_texture=True,
+                                                dr_type=dr_type,
+                                                texture_type=texture_type,
+                                                texture_wrapping=texture_wrapping, 
+                                                use_bilinear=use_bilinear)
         else:
             vertices, faces = load_obj(filename_obj,
-                                           normalization=normalization,
-                                           texture_res=texture_res,
-                                           load_texture=False)
+                                    normalization=normalization,
+                                    texture_res=texture_res,
+                                    load_texture=False, dr_type=dr_type)
             textures = None
-        return cls(vertices, faces, textures, texture_res, texture_type)
+        return cls(vertices, faces, textures, texture_res, texture_type, dr_type=dr_type)
 
     def save_obj(self, filename_obj, save_texture=False, texture_res_out=16):
         if self.batch_size != 1:

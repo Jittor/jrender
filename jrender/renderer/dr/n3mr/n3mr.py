@@ -1,7 +1,7 @@
 import jittor as jt
 from jittor import nn
 from jittor import Function
-from . cuda import rasterize as rasterize_cuda
+from .cuda import rasterize as rasterize_cuda
 
 DEFAULT_IMAGE_SIZE = 256
 DEFAULT_ANTI_ALIASING = True
@@ -55,8 +55,7 @@ class RasterizeFunction(Function):
         # backward pass
         grad_faces = self.backward_pixel_map(faces, face_index_map, rgb_map, alpha_map, grad_rgb_map, grad_alpha_map, grad_faces)
         grad_textures = self.backward_textures(face_index_map, sampling_weight_map, sampling_index_map, grad_rgb_map, grad_textures)
-        grad_faces = self.backward_depth_map(faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces)
-
+        grad_faces = self.backward_depth_map(faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces)[0]
         if self.texture_size is None:
             grad_textures = None
         
@@ -162,7 +161,7 @@ class RasterizeFunction(Function):
 
     def backward_depth_map(self, faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces):
         if not self.return_depth:
-            return grad_faces
+            return [grad_faces]
         else:
             return rasterize_cuda.backward_depth_map(faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces, self.image_size)
 

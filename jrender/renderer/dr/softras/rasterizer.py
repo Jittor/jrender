@@ -48,4 +48,9 @@ class SoftRasterizer(nn.Module):
 
         if self.anti_aliasing:
             images = nn.pool(images, 2, "mean", stride=2)
-        return images
+        if mode == 'silhouettes':
+            return images[:,3,:,:]
+        elif mode == 'rgb':
+            return images[:,:3,:,:]
+        elif mode is None:
+            return images[:,3,:,:], images[:,:3,:,:]

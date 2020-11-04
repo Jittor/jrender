@@ -740,7 +740,7 @@ __global__ void backward_textures_cuda_kernel(
     ''')
 
 def backward_depth_map(faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map, grad_faces, image_size):
-    return jt.code(grad_faces.shape, grad_faces.dtype, [faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map], 
+    return jt.code([faces, depth_map, face_index_map, face_inv_map, weight_map, grad_depth_map], [grad_faces], 
     cuda_header='''
 #include <iostream>
 #include <cuda.h>
@@ -811,7 +811,6 @@ __global__ void backward_depth_map_cuda_kernel(
     @alias(grad_depth_map, in5)
     @alias(grad_faces, out0)
 
-    cudaMemsetAsync(out0_p, 0, out0->size);
     const auto batch_size = faces_shape0;
     const auto num_faces = faces_shape1;
     const int threads = 512;

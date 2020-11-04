@@ -13,8 +13,6 @@
 
 ### 示例1 使用2种不同的可微渲染器SoftRas和N3MR进行渲染
 
-'''
-
     import jrender as jr
 
     # create a mesh object from args.filename_input
@@ -29,11 +27,8 @@
     # render the given mesh to a rgb or silhouette image
     rgb = renderer.render_mesh(mesh)
     silhouettes = renderer.render_mesh(mesh, mode='silhouettes')
-'''
 
 切换N3MR渲染器，只需要将dr_type全部换成n3mr即可。
-
-'''
 
     import jrender as jr
 
@@ -50,9 +45,8 @@
     rgb = renderer.render_mesh(mesh)
     silhouettes = renderer.render_mesh(mesh, mode='silhouettes')
     depth = renderer.render_mesh(mesh, mode='depth')
-'''
 
-参见[详细代码](https://github.com/zhouwy19/jrender/examples/render.py)。
+参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render.py)。
 
 N3MR渲染的带有纹理的结果和轮廓图结果如下：
 
@@ -65,7 +59,6 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
 <img src="data/imgs/softras-silhouettes.gif" width="250" style="max-width:50%;">
 
 ### 示例2 利用可微渲染器将球形变为飞机
-'''
 
     import jrender as jr
     from jrender import neg_iou_loss, LaplacianLoss, FlattenLoss
@@ -115,9 +108,8 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
                 0.03 * laplacian_loss + \
                 0.0003 * flatten_loss
         optimizer.step(loss)
-'''
 
-下图是从球模型变成飞机模型的过程，参见[详细代码](https://github.com/zhouwy19/jrender/examples/deform.py)。
+下图是从球模型变成飞机模型的过程，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/deform.py)。
 
 <img src="data/imgs/n3mr-deform.gif" width="250" style="max-width:50%;">
 

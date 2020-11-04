@@ -13,7 +13,8 @@
 
 ### 示例1 使用2种不同的可微渲染器SoftRas和N3MR进行渲染
 
-'''python
+'''
+
     import jrender as jr
 
     # create a mesh object from args.filename_input
@@ -32,7 +33,8 @@
 
 切换N3MR渲染器，只需要将dr_type全部换成n3mr即可。
 
-'''python
+'''
+
     import jrender as jr
 
     # create a mesh object from args.filename_input
@@ -63,7 +65,8 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
 <img src="data/imgs/softras-silhouettes.gif" width="250" style="max-width:50%;">
 
 ### 示例2 利用可微渲染器将球形变为飞机
-'''python
+'''
+
     import jrender as jr
     from jrender import neg_iou_loss, LaplacianLoss, FlattenLoss
 

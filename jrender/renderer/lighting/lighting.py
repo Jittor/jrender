@@ -69,10 +69,10 @@ class DirectionalLighting(nn.Module):
         self.light_color = light_color
         self.light_direction = light_direction
 
-    def execute(self, diffuseLight, specularLight, normals, positions=None, eye=None):
+    def execute(self, diffuseLight, specularLight, normals, positions=None, eye=None, with_specular=False, metallic_textures=None, roughness_textures=None):
         return directional_lighting(diffuseLight, specularLight, normals,
                                         self.light_intensity, self.light_color, 
-                                        self.light_direction, positions, eye)
+                                        self.light_direction, positions, eye, with_specular, metallic_textures, roughness_textures)
 
 
 class Lighting(nn.Module):
@@ -95,18 +95,23 @@ class Lighting(nn.Module):
         if self.light_mode == 'surface':
             diffuseLight = jt.zeros(mesh.faces.shape)
             specularLight = jt.zeros(mesh.faces.shape)
-            diffuseLight = 0.5 * self.ambient(diffuseLight)
+            diffuseLight = self.ambient(diffuseLight)
             for directional in self.directionals:
-                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes)
-            mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2),0.0, 1.0) 
-        
+                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures) 
+            if len(mesh.textures.shape) == 4: 
+                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0) 
+            elif len(mesh.textures.shape) == 6:
+                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0)
 
         elif self.light_mode == 'vertex':
             diffuseLight = jt.zeros(mesh.vertices.shape)
             specualrLight = jt.zeros(mesh.vertices.shape)
             diffuseLight = self.ambient(diffuseLight)
             for directional in self.directionals:
-                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes)
-            mesh.textures = mesh.textures * diffuseLight
+                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
+            if len(mesh.textures.shape) == 4:
+                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0)
+            elif len(mesh.textures.shape) == 6:
+                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0) 
 
         return mesh

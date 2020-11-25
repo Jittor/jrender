@@ -65,9 +65,21 @@ class Mesh(object):
         self._surface_normals_update = True
         self._vertex_normals = None
         self._vertex_normals_update = True
+        self._with_specular = False
 
         self._fill_back = False
         self.dr_type = dr_type
+        
+        if texture_type == 'surface':
+            if self.dr_type == 'softras':
+                self._metallic_textures = jt.zeros((self.batch_size, self.num_faces, texture_res**2, 1))
+                self._roughness_textures = jt.ones((self.batch_size, self.num_faces, texture_res**2, 1))
+            elif self.dr_type == 'n3mr':
+                self._metallic_textures = jt.zeros((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1))
+                self._roughness_textures = jt.ones((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1))
+        elif texture_type == 'vertex':
+            self._metallic_textures = jt.zeros((self.batch_size, self.num_vertices, 1))
+            self._roughness_textures = jt.ones((self.batch_size, self.num_vertices, 1))
 
         # create textures
         if textures is None:
@@ -78,7 +90,7 @@ class Mesh(object):
                     self._textures = jt.ones((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 3))
                 self.texture_res = texture_res
             elif texture_type == 'vertex':
-                self._textures = jt.ones((self.batch_size, self.num_vertices, 3))
+                self._textures = jt.ones((self.batch_size, self.num_vertices, 3)) 
                 self.texture_res = 1
         else:
             if isinstance(textures, np.ndarray):
@@ -95,6 +107,14 @@ class Mesh(object):
         self._origin_vertices = self._vertices
         self._origin_faces = self._faces
         self._origin_textures = self._textures
+
+    @property
+    def with_specular(self):
+        return self._with_specular
+
+    @with_specular.setter
+    def with_specular(self, with_specular):
+        self._with_specular = with_specular
 
     @property
     def faces(self):
@@ -130,6 +150,22 @@ class Mesh(object):
     def textures(self, textures):
         # need check tensor
         self._textures = textures
+    
+    @property
+    def metallic_textures(self):
+        return self._metallic_textures
+
+    @metallic_textures.setter
+    def metallic_textures(self, metallic_textures):
+        self._metallic_textures = metallic_textures
+
+    @property
+    def roughness_textures(self):
+        return self._roughness_textures
+
+    @roughness_textures.setter
+    def roughness_textures(self, roughness_textures):
+        self._roughness_textures = roughness_textures
 
     @property
     def face_vertices(self):

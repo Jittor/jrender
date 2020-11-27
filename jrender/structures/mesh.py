@@ -37,7 +37,7 @@ class Mesh(object):
         save_obj: save a mesh to one .obj file
         voxelize: voxelize the vertices to voxel space
     '''
-    def __init__(self, vertices, faces, textures=None, texture_res=1, texture_type='surface', dr_type='softras'):
+    def __init__(self, vertices, faces, textures=None, texture_res=1, texture_type='surface', dr_type='softras', metallic_textures=None, roughness_textures=None):
         '''
         vertices, faces and textures (if not None) are expected to be Tensor objects
         '''
@@ -65,7 +65,7 @@ class Mesh(object):
         self._surface_normals_update = True
         self._vertex_normals = None
         self._vertex_normals_update = True
-        self._with_specular = False
+        self._with_specular = True
 
         self._fill_back = False
         self.dr_type = dr_type
@@ -80,6 +80,11 @@ class Mesh(object):
         elif texture_type == 'vertex':
             self._metallic_textures = jt.zeros((self.batch_size, self.num_vertices, 1))
             self._roughness_textures = jt.ones((self.batch_size, self.num_vertices, 1))
+       
+        if metallic_textures is not None:
+            self._metallic_textures = metallic_textures
+        if roughness_textures is not None:
+            self._roughness_textures = roughness_textures
 
         # create textures
         if textures is None:

@@ -66,6 +66,6 @@ class Renderer(nn.Module):
         mesh = self.transform(mesh)
         return self.rasterizer(mesh, mode)
 
-    def execute(self, vertices, faces, textures=None, mode='rgb', texture_type='surface'):
-        mesh = Mesh(vertices, faces, textures=textures, texture_type=texture_type)
+    def execute(self, vertices, faces, textures=None,mode='rgb', texture_type='surface', metallic_textures=None, roughness_textures=None):
+        mesh = Mesh(vertices, faces, textures=textures, texture_type=texture_type, metallic_textures=metallic_textures, roughness_textures=roughness_textures)
         return self.render_mesh(mesh, mode)

@@ -149,7 +149,89 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
 参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render_specular.py)。
 
 带有粗糙度和金属度贴图的渲染结果如下：
-<img src="data/imgs/specular.gif.gif" width="250" style="max-width:50%;">
+
+<img src="data/imgs/specular.gif" width="250" style="max-width:50%;">
+
+### 示例5 利用可微渲染器优化金属度贴图
+    class Model(nn.Module):
+        def __init__(self, filename_obj, filename_ref):
+            super(Model, self).__init__()
+
+            # set template mesh
+            texture_size = 4
+            self.template_mesh = jr.Mesh.from_obj(filename_obj, texture_res=texture_size,load_texture=True, dr_type='softras')
+            self.vertices = (self.template_mesh.vertices).stop_grad()
+            self.faces = self.template_mesh.faces.stop_grad()
+            self.textures = self.template_mesh.textures.stop_grad()
+            self.metallic_textures = jt.zeros((1, self.faces.shape[1], texture_size * texture_size, 1)).float32()
+            self.roughness_textures = jt.zeros((1, self.faces.shape[1], texture_size * texture_size, 1)).float32() + 0.5
+            self.roughness_textures = self.roughness_textures.stop_grad()
+            # load reference image
+            self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
+            # setup renderer
+            self.renderer = jr.Renderer(dr_type='softras', light_intensity_directionals=1.0, light_intensity_ambient=0.0)
+
+        def execute(self):
+            self.renderer.transform.set_eyes_from_angles(2.732, 30, 140)
+            image = self.renderer(self.vertices, self.faces, self.textures, metallic_textures=self.metallic_textures, roughness_textures=self.roughness_textures)
+            loss = jt.sum((image - self.image_ref).sqr())
+            return loss
+
+
+    model = Model(args.filename_obj, args.filename_ref)
+
+    optimizer = nn.Adam([model.metallic_textures], lr=0.1, betas=(0.5,0.999))
+    loop = tqdm.tqdm(range(20))
+    for num in loop:
+        loop.set_description('Optimizing')
+        loss = model()
+        optimizer.step(loss)
+
+参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_metallic_textures.py)。
+
+下图是金属度贴图的优化过程：
+
+<img src="data/imgs/metallic.gif" width="250" style="max-width:50%;">
+
+### 示例5 利用可微渲染器优化粗糙度贴图
+    class Model(nn.Module):
+        def __init__(self, filename_obj, filename_ref):
+            super(Model, self).__init__()
+
+            # set template mesh
+            texture_size = 4
+            self.template_mesh = jr.Mesh.from_obj(filename_obj, texture_res=texture_size,load_texture=True, dr_type='softras')
+            self.vertices = (self.template_mesh.vertices).stop_grad()
+            self.faces = self.template_mesh.faces.stop_grad()
+            self.textures = self.template_mesh.textures.stop_grad()
+            self.metallic_textures = jt.zeros((1, self.faces.shape[1], texture_size * texture_size, 1)).float32() + 0.4
+            self.metallic_textures = self.metallic_textures.stop_grad()
+            self.roughness_textures = jt.ones((1, self.faces.shape[1], texture_size * texture_size, 1)).float32()
+            # load reference image
+            self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
+            # setup renderer
+            self.renderer = jr.Renderer(dr_type='softras')
+
+        def execute(self):
+            self.renderer.transform.set_eyes_from_angles(2.732, 30, 140)
+            image = self.renderer(self.vertices, self.faces, self.textures, metallic_textures=self.metallic_textures, roughness_textures=self.roughness_textures)
+            loss = jt.sum((image - self.image_ref).sqr())
+            return loss
+
+    def main():
+        model = Model(args.filename_obj, args.filename_ref)
+
+        optimizer = nn.Adam([model.roughness_textures], lr=0.1, betas=(0.5,0.999))
+        loop = tqdm.tqdm(range(15))
+        for num in loop:
+            loop.set_description('Optimizing')
+            loss = model()
+            optimizer.step(loss)
+参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_roughness_textures.py)。
+
+下图是粗糙度贴图的优化过程：
+
+<img src="data/imgs/roughness.gif" width="250" style="max-width:50%;">
 
 ## Citation
 ```

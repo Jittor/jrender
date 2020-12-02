@@ -117,6 +117,40 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
 
 我们在Jrender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
 
+### 示例4 使用Jrender渲染Specular材质
+
+我们在Jrender渲染库中实现了Microfacet模型，可以支持Specular材质渲染。用户可以通过我们的API传入金属度贴图和粗糙度贴图来控制Specular材质的样式，获得具有不同光泽特性的渲染结果。
+
+    # load from Wavefront .obj file
+    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5 ,texture_type='surface', dr_type='softras')
+
+    # create renderer with SoftRas
+    renderer = jr.Renderer(dr_type='softras')
+
+    #Roughness/Metallic setup 0.5 0.4
+    metallic_textures = jt.zeros((1, mesh.faces.shape[1], 5 * 5, 1)).float32() + 0.5
+    roughness_textures = jt.zeros((1, mesh.faces.shape[1], 5 * 5, 1)).float32() + 0.4
+
+    # draw object from different view
+    loop = tqdm.tqdm(list(range(0, 360, 4)))
+    writer = imageio.get_writer(os.path.join(args.output_dir, 'rotation.gif'), mode='I')
+    imgs = []
+    from PIL import Image
+    for num, azimuth in enumerate(loop):
+        # rest mesh to initial state
+        mesh.reset_()
+        loop.set_description('Drawing rotation')
+        renderer.transform.set_eyes_from_angles(camera_distance, elevation, azimuth)
+        rgb = renderer(mesh.vertices, mesh.faces, textures=mesh.textures, metallic_textures=metallic_textures, roughness_textures=roughness_textures)
+        image = rgb.numpy()[0].transpose((1, 2, 0))
+        writer.append_data((255*image).astype(np.uint8))
+    writer.close()
+
+参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render_specular.py)。
+
+带有粗糙度和金属度贴图的渲染结果如下：
+<img src="data/imgs/specular.gif.gif" width="250" style="max-width:50%;">
+
 ## Citation
 ```
 @InProceedings{kato2018renderer

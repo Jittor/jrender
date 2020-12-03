@@ -36,6 +36,21 @@
 
 * [进阶教程1：人脸重建](#进阶教程1：人脸重建)
 
+## 使用
+
+使用JRender前需要安装好Jittor，Jittor安装方法在[此处](https://github.com/Jittor/jittor)。
+
+```
+git clone https://github.com/zhouwy19/jrender.git
+cd jrender
+python demo1-render.py
+python demo2-deform
+python demo3-render_specular.py
+python demo4-optim_textures.py
+python demo5-optim_metallic_textures.py
+python demo6-optim_roughness_textures.py
+```
+
 ## 基础教程
 
 ### 基础教程1：渲染物体

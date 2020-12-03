@@ -294,7 +294,21 @@
 我们在JRender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
 
 ## Citation
-本渲染器内置了N3MR和SoftRas两个可微渲染器，若您在研究中使用了渲染器，请您引用相应的论文。
+
+如果您在自己的研究工作中使用了JRender，请引用Jittor的论文。
+```
+@article{hu2020jittor,
+  title={Jittor: a novel deep learning framework with meta-operators and unified graph execution},
+  author={Hu, Shi-Min and Liang, Dun and Yang, Guo-Ye and Yang, Guo-Wei and Zhou, Wen-Yang},
+  journal={Information Sciences},
+  volume={63},
+  number={222103},
+  pages={1--222103},
+  year={2020}
+}
+```
+
+同时，本渲染器内置了N3MR和SoftRas两个可微渲染器，若您在研究中使用了渲染器，请您引用相应的论文。
 ```
 @InProceedings{kato2018renderer
     title={Neural 3D Mesh Renderer},

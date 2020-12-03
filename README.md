@@ -3,12 +3,12 @@
 ## 渲染结果一览
 
 <p align="left">
-<img src="data/imgs/softras-rgb.gif" width="150" \>
-<img src="data/imgs/specular.gif" width="150" style="padding-left: 5px;" \>
-<img src="data/imgs/n3mr-deform.gif" width="150" style="padding-left: 5px;" \>
-<img src="data/imgs/optim_textures.gif" width="150" style="padding-left: 5px;" \>
-<img src="data/imgs/metallic.gif" width="150" style="padding-left: 5px;" \>
-<img src="data/imgs/roughness.gif" width="150" style="padding-left: 5px;" \>
+<img src="data/imgs/softras-rgb.gif" width="120" \>
+<img src="data/imgs/specular.gif" width="120" style="padding-left: 5px;" \>
+<img src="data/imgs/n3mr-deform.gif" width="120" style="padding-left: 5px;" \>
+<img src="data/imgs/optim_textures.gif" width="120" style="padding-left: 5px;" \>
+<img src="data/imgs/metallic.gif" width="120" style="padding-left: 5px;" \>
+<img src="data/imgs/roughness.gif" width="120" style="padding-left: 5px;" \>
 </p>
 
 ## 介绍
@@ -60,8 +60,8 @@
 渲染的带有纹理的结果和轮廓图结果如下，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render.py)。
 
 <p align="left">
-<img src="data/imgs/softras-rgb.gif" \>
-<img src="data/imgs/softras-silhouettes.gif" style="padding-left: 25px;" \>
+<img src="data/imgs/softras-rgb.gif" width="200" \>
+<img src="data/imgs/softras-silhouettes.gif" width="200" style="padding-left: 25px;" \>
 </p>
 
 ### 基础教程2：优化模型几何

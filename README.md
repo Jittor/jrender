@@ -1,17 +1,46 @@
 # Jrender (Jittor渲染库)
 
+## 渲染结果一览
+
+<p align="left">
+<img src="data/imgs/softras-rgb.gif" width="150" \>
+<img src="data/imgs/specular.gif" width="150" style="padding-left: 5px;" \>
+<img src="data/imgs/n3mr-deform.gif" width="150" style="padding-left: 5px;" \>
+<img src="data/imgs/optim_textures.gif" width="150" style="padding-left: 5px;" \>
+<img src="data/imgs/metallic.gif" width="150" style="padding-left: 5px;" \>
+<img src="data/imgs/roughness.gif" width="150" style="padding-left: 5px;" \>
+</p>
+
 ## 介绍
 
 主要特性:
 
 * 支持对.obj文件的加载和保存，支持对三角网格模型的渲染；
 * 内置2个主流三角网格可微渲染器SoftRas和N3MR，支持快速切换可微渲染器；
-* 内置多种shade算法、loss函数、投影函数；
-* 使用CUDA进行渲染加速。
+* 支持金属度、粗糙度材质渲染；
+* 内置多种loss函数、投影函数；
+* 使用CUDA进行渲染加速，渲染速度优于PyTorch。
 
 ## 示例
 
-### 示例1 使用2种不同的可微渲染器SoftRas和N3MR进行渲染
+## 基础教程
+
+* [基础教程1：渲染物体](#基础教程1：渲染物体)
+* [基础教程2：优化模型几何](#基础教程2：优化模型几何)
+* [基础教程3：渲染Specular材质](#基础教程3：渲染Specular材质)
+* [基础教程4：优化纹理](#基础教程4：优化纹理)
+* [基础教程5：优化金属度贴图](#基础教程5：优化金属度贴图)
+* [基础教程6：优化粗糙度贴图](#基础教程6：粗糙度贴图)
+
+## 进阶教程
+
+* [进阶教程1：人脸重建](#进阶教程1：人脸重建)
+
+## 基础教程
+
+### 基础教程1：渲染物体
+
+该教程使用JRender渲染一个奶牛。
 
     import jrender as jr
 
@@ -26,39 +55,18 @@
 
     # render the given mesh to a rgb or silhouette image
     rgb = renderer.render_mesh(mesh)
-    silhouettes = renderer.render_mesh(mesh, mode='silhouettes')
+    silhouettes = renderer.render_mesh(mesh, mode='silhouettes') # or mode = 'rgb'
 
-切换N3MR渲染器，只需要将dr_type全部换成n3mr即可。
+渲染的带有纹理的结果和轮廓图结果如下，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render.py)。
 
-    import jrender as jr
+<p align="left">
+<img src="data/imgs/softras-rgb.gif" \>
+<img src="data/imgs/softras-silhouettes.gif" style="padding-left: 25px;" \>
+</p>
 
-    # create a mesh object from args.filename_input
-    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5, texture_type='surface', dr_type='n3mr')
+### 基础教程2：优化模型几何
 
-    # create a softras using default parameters
-    renderer = jr.Renderer(dr_type='n3mr')
-
-    # set the position of eyes
-    renderer.transform.set_eyes_from_angles(2.732, 30, 0)
-
-    # render the given mesh to a rgb, silhouette or depth image
-    rgb = renderer.render_mesh(mesh)
-    silhouettes = renderer.render_mesh(mesh, mode='silhouettes')
-    depth = renderer.render_mesh(mesh, mode='depth')
-
-参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render.py)。
-
-N3MR渲染的带有纹理的结果和轮廓图结果如下：
-
-<img src="data/imgs/n3mr-rgb.gif" width="250" style="max-width:50%;">
-<img src="data/imgs/n3mr-silhouettes.gif" width="250" style="max-width:50%;">
-
-Softras渲染的带有纹理的结果和轮廓图结果如下：
-
-<img src="data/imgs/softras-rgb.gif" width="250" style="max-width:50%;">
-<img src="data/imgs/softras-silhouettes.gif" width="250" style="max-width:50%;">
-
-### 示例2 利用可微渲染器将球形变为飞机
+该教程利用可微渲染器将球形变为飞机。
 
     import jrender as jr
     from jrender import neg_iou_loss, LaplacianLoss, FlattenLoss
@@ -111,13 +119,10 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
 
 下图是从球模型变成飞机模型的过程，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/deform.py)。
 
-<img src="data/imgs/n3mr-deform.gif" width="250" style="max-width:50%;">
+<img src="data/imgs/n3mr-deform.gif" width="200" style="max-width:50%;">
 
-### 示例3 使用Jrender进行人脸重建
 
-我们在Jrender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
-
-### 示例4 使用Jrender渲染Specular材质
+### 基础教程3：渲染Specular材质
 
 我们在Jrender渲染库中实现了Microfacet模型，可以支持Specular材质渲染。用户可以通过我们的API传入金属度贴图和粗糙度贴图来控制Specular材质的样式，获得具有不同光泽特性的渲染结果。
 
@@ -146,13 +151,55 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
         writer.append_data((255*image).astype(np.uint8))
     writer.close()
 
-参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render_specular.py)。
+带有粗糙度和金属度贴图的渲染结果如下,参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render_specular.py)。
 
-带有粗糙度和金属度贴图的渲染结果如下：
+<img src="data/imgs/specular.gif" width="200" style="max-width:50%;">
 
-<img src="data/imgs/specular.gif" width="250" style="max-width:50%;">
+### 基础教程4：优化纹理
 
-### 示例5 利用可微渲染器优化金属度贴图
+    class Model(nn.Module):
+    def __init__(self, filename_obj, filename_ref):
+        super(Model, self).__init__()
+
+        # set template mesh
+        self.template_mesh = jr.Mesh.from_obj(filename_obj, dr_type='softras')
+        self.vertices = (self.template_mesh.vertices * 0.6).stop_grad()
+        self.faces = self.template_mesh.faces.stop_grad()
+        # self.textures = self.template_mesh.textures
+        texture_size = 4
+        self.textures = jt.zeros((1, self.faces.shape[1], texture_size, texture_size, texture_size, 3)).float32()
+
+        # load reference image
+        self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
+
+        # setup renderer
+        self.renderer = jr.Renderer(camera_mode='look_at', perspective=False, light_intensity_directionals=0.0, light_intensity_ambient=1.0, dr_type='softras')
+
+    def execute(self):
+        num = np.random.uniform(0, 360)
+        self.renderer.transform.set_eyes_from_angles(2.732, 0, num)
+        image = self.renderer(self.vertices, self.faces, jt.tanh(self.textures))
+        loss = jt.sum((image - self.image_ref).sqr())
+        return loss
+
+    model = Model(args.filename_obj, args.filename_ref)
+
+    optimizer = nn.Adam([model.textures], lr=0.1, betas=(0.5,0.999))
+    loop = tqdm.tqdm(range(300))
+    for num in loop:
+        loop.set_description('Optimizing')
+        loss = model()
+        optimizer.step(loss)
+
+下图是纹理的优化结果，从左到右分别是优化目标纹理图像和优化结果，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_textures.py)。
+
+<p align="left">
+<img src="data/ref/ref_texture.png" width="200" style="max-width:50%;">
+<img src="data/imgs/optim_textures.gif" width="200" style="max-width:50%;">
+</p>
+
+### 基础教程5：优化金属度贴图
+
     class Model(nn.Module):
         def __init__(self, filename_obj, filename_ref):
             super(Model, self).__init__()
@@ -187,13 +234,16 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
         loss = model()
         optimizer.step(loss)
 
-参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_metallic_textures.py)。
+下图是金属度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_metallic_textures.py)。
 
-下图是金属度贴图的优化过程：
+<p align="left">
+<img src="data/ref/init_metallic.png" width="200" style="max-width:50%;">
+<img src="data/ref/ref_metallic.png" width="200" style="max-width:50%;">
+<img src="data/imgs/metallic.gif" width="200" style="max-width:50%;">
+</p>
 
-<img src="data/imgs/metallic.gif" width="250" style="max-width:50%;">
 
-### 示例5 利用可微渲染器优化粗糙度贴图
+### 基础教程6：优化粗糙度贴图
     class Model(nn.Module):
         def __init__(self, filename_obj, filename_ref):
             super(Model, self).__init__()
@@ -227,13 +277,24 @@ Softras渲染的带有纹理的结果和轮廓图结果如下：
             loop.set_description('Optimizing')
             loss = model()
             optimizer.step(loss)
-参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_roughness_textures.py)。
 
-下图是粗糙度贴图的优化过程：
 
-<img src="data/imgs/roughness.gif" width="250" style="max-width:50%;">
+下图是粗糙度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_roughness_textures.py)。
+
+<p align="left">
+<img src="data/ref/init_roughness.png" width="200" style="max-width:50%;">
+<img src="data/ref/ref_roughness.png" width="200" style="max-width:50%;">
+<img src="data/imgs/roughness.gif" width="200" style="max-width:50%;">
+</p>
+
+## 进阶教程
+
+### 进阶教程1：人脸重建
+
+我们在JRender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
 
 ## Citation
+本渲染器内置了N3MR和SoftRas两个可微渲染器，若您在研究中使用了渲染器，请您引用相应的论文。
 ```
 @InProceedings{kato2018renderer
     title={Neural 3D Mesh Renderer},

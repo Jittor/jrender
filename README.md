@@ -51,6 +51,27 @@ python demo5-optim_metallic_textures.py
 python demo6-optim_roughness_textures.py
 ```
 
+## 速度对比
+
+我们对PyTorch和Jittor渲染一个带有纹理的奶牛以及球形变为飞机做了时间对比测试，测试环境如下。
+
+* cuda: 10.2
+* torch: 1.6.0
+* soft-renderer: 1.0.0
+
+测试结果：
+
+|           | JRender渲染时间   | PyTorch渲染时间 | 加速比 |
+|  ----     | ----          | ----  | ----  |
+| N3MR    | 0.1558        | 1.6417 | 10.53|
+| Softras   | 0.1294        | 0.5301 | 4.09 |
+
+|           | 飞机形变优化时间   | 
+|  ----     | ----          |
+| Jittor    | 19.58        |
+| PyTorch   | 32.88        |
+| 加速比   | 1.67           |
+
 ## 基础教程
 
 ### 基础教程1：渲染物体

@@ -34,7 +34,8 @@
 
 ## 进阶教程
 
-* [进阶教程1：人脸重建](#进阶教程1：人脸重建)
+* [进阶教程1：ShapeNet数据集三维重建](#进阶教程1：ShapeNet数据集三维重建)
+* [进阶教程2：人脸重建](#进阶教程2：人脸重建)
 
 ## 使用
 
@@ -325,7 +326,11 @@ python demo6-optim_roughness_textures.py
 
 ## 进阶教程
 
-### 进阶教程1：人脸重建
+### 进阶教程1：ShapeNet数据集三维重建
+
+我们使用JRender对ShapeNet数据集进行了三维重建，模型的训练速度是PyTorch的1.22倍。参见[详细代码](https://github.com/Jittor/shapenet-reconstruction-jittor)。
+
+### 进阶教程2：人脸重建
 
 我们在JRender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
 

@@ -42,7 +42,7 @@
 使用JRender前需要安装好Jittor，Jittor安装方法在[此处](https://github.com/Jittor/jittor)。
 
 ```
-git clone https://github.com/zhouwy19/jrender.git
+git clone https://github.com/jittor/jrender.git
 cd jrender
 python demo1-render.py
 python demo2-deform
@@ -94,7 +94,7 @@ python demo6-optim_roughness_textures.py
     rgb = renderer.render_mesh(mesh)
     silhouettes = renderer.render_mesh(mesh, mode='silhouettes') # or mode = 'rgb'
 
-渲染的带有纹理的结果和轮廓图结果如下，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render.py)。
+渲染的带有纹理的结果和轮廓图结果如下，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo1-render.py)。
 
 <p align="left">
 <img src="data/imgs/softras-rgb.gif" width="200" \>
@@ -154,7 +154,7 @@ python demo6-optim_roughness_textures.py
                 0.0003 * flatten_loss
         optimizer.step(loss)
 
-下图是从球模型变成飞机模型的过程，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/deform.py)。
+下图是从球模型变成飞机模型的过程，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo2-deform.py)。
 
 <img src="data/imgs/n3mr-deform.gif" width="200" style="max-width:50%;">
 
@@ -188,7 +188,7 @@ python demo6-optim_roughness_textures.py
         writer.append_data((255*image).astype(np.uint8))
     writer.close()
 
-带有粗糙度和金属度贴图的渲染结果如下,参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/render_specular.py)。
+带有粗糙度和金属度贴图的渲染结果如下,参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo3-render_specular.py)。
 
 <img src="data/imgs/specular.gif" width="200" style="max-width:50%;">
 
@@ -228,7 +228,7 @@ python demo6-optim_roughness_textures.py
         loss = model()
         optimizer.step(loss)
 
-下图是纹理的优化结果，从左到右分别是优化目标纹理图像和优化结果，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_textures.py)。
+下图是纹理的优化结果，从左到右分别是优化目标纹理图像和优化结果，参见[详细代码](https://github.com/jittor/jrender/blob/main/demo4-optim_textures.py)。
 
 <p align="left">
 <img src="data/ref/ref_texture.png" width="200" style="max-width:50%;">
@@ -271,7 +271,7 @@ python demo6-optim_roughness_textures.py
         loss = model()
         optimizer.step(loss)
 
-下图是金属度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_metallic_textures.py)。
+下图是金属度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/jittor/jrender/blob/main/demo5-optim_metallic_textures.py)。
 
 <p align="left">
 <img src="data/ref/init_metallic.png" width="200" style="max-width:50%;">
@@ -316,7 +316,7 @@ python demo6-optim_roughness_textures.py
             optimizer.step(loss)
 
 
-下图是粗糙度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/zhouwy19/jrender/blob/main/optim_roughness_textures.py)。
+下图是粗糙度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/jittor/jrender/blob/main/demo6-optim_roughness_textures.py)。
 
 <p align="left">
 <img src="data/ref/init_roughness.png" width="200" style="max-width:50%;">

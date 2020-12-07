@@ -53,7 +53,7 @@ def make_gif(filename):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-io', '--filename_obj', type=str, default=os.path.join(data_dir, 'obj/spot/spot_triangulated.obj'))
-    parser.add_argument('-ir', '--filename_ref', type=str, default=os.path.join(data_dir, 'ref/texture.png'))
+    parser.add_argument('-ir', '--filename_ref', type=str, default=os.path.join(data_dir, 'ref/ref_texture.png'))
     parser.add_argument('-or', '--filename_output', type=str, default=os.path.join(data_dir, 'results/output_optim_textures'))
     parser.add_argument('-g', '--gpu', type=int, default=0)
     args = parser.parse_args()

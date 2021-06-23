@@ -1,4 +1,4 @@
-# Jrender (Jittor渲染库)
+# Jrender 2.0 (Jittor渲染库)
 
 ## 渲染结果一览
 
@@ -16,6 +16,7 @@
 主要特性:
 
 * 支持对.obj文件的加载和保存，支持对三角网格模型的渲染；
+* 支持Volume Rendering；
 * 内置2个主流三角网格可微渲染器SoftRas和N3MR，支持快速切换可微渲染器；
 * 支持金属度、粗糙度材质渲染；
 * 内置多种loss函数、投影函数；
@@ -36,6 +37,7 @@
 
 * [进阶教程1：ShapeNet数据集三维重建](#进阶教程1：ShapeNet数据集三维重建)
 * [进阶教程2：人脸重建](#进阶教程2：人脸重建)
+* [进阶教程3：NERF](#进阶教程3：NERF)
 
 ## 使用
 
@@ -76,7 +78,7 @@ python demo6-optim_roughness_textures.py
 | N3MR    | 4.99        | 65.07 | 13.04 |
 | Softras   | 12.46        | 18.58 | 1.49 |
 
-|           | 飞机形变优化时间   | 
+|           | 飞机形变优化时间   |
 |  ----     | ----          |
 | Jittor    | 19.58        |
 | PyTorch   | 32.88        |
@@ -89,16 +91,16 @@ python demo6-optim_roughness_textures.py
 该教程使用JRender渲染一个奶牛。
 
     import jrender as jr
-
+    
     # create a mesh object from args.filename_input
     mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5, texture_type='surface', dr_type='softras')
-
+    
     # create a softras using default parameters
     renderer = jr.Renderer(dr_type='softras')
-
+    
     # set the position of eyes
     renderer.transform.set_eyes_from_angles(2.732, 30, 0)
-
+    
     # render the given mesh to a rgb or silhouette image
     rgb = renderer.render_mesh(mesh)
     silhouettes = renderer.render_mesh(mesh, mode='silhouettes') # or mode = 'rgb'
@@ -116,48 +118,48 @@ python demo6-optim_roughness_textures.py
 
     import jrender as jr
     from jrender import neg_iou_loss, LaplacianLoss, FlattenLoss
-
+    
     class Model(nn.Module):
         def __init__(self, template_path):
             super(Model, self).__init__()
-
+    
             # set template mesh
             self.template_mesh = jr.Mesh.from_obj(template_path, dr_type='softras')
             self.vertices = (self.template_mesh.vertices * 0.5).stop_grad()
             self.faces = self.template_mesh.faces.stop_grad()
             self.textures = self.template_mesh.textures.stop_grad()
-
+    
             # optimize for displacement map and center
             self.displace = jt.zeros(self.template_mesh.vertices.shape)
             self.center = jt.zeros((1, 1, 3))
-
+    
             # define Laplacian and flatten geometry constraints
             self.laplacian_loss = LaplacianLoss(self.vertices[0], self.faces[0])
             self.flatten_loss = FlattenLoss(self.faces[0])
-
+    
         def execute(self, batch_size):
             base = jt.log(self.vertices.abs() / (1 - self.vertices.abs()))
             centroid = jt.tanh(self.center)
             vertices = (base + self.displace).sigmoid() * nn.sign(self.vertices)
             vertices = nn.relu(vertices) * (1 - centroid) - nn.relu(-vertices) * (centroid + 1)
             vertices = vertices + centroid
-
+    
             # apply Laplacian and flatten geometry constraints
             laplacian_loss = self.laplacian_loss(vertices).mean()
             flatten_loss = self.flatten_loss(vertices).mean()
             return jr.Mesh(vertices.repeat(batch_size, 1, 1), 
                         self.faces.repeat(batch_size, 1, 1), dr_type='softras'), laplacian_loss, flatten_loss
-
+    
     # define a softras render
     renderer = jr.SoftRenderer(image_size=64, sigma_val=1e-4, aggr_func_rgb='hard', camera_mode='look_at', viewing_angle=15, dr_type='softras')
-
+    
     for i in range(1000):
         # get the deformede mesh object, laplacian_loss, flatten_loss
         mesh, laplacian_loss, flatten_loss = model(args.batch_size)
-
+    
         # render silhouettes image
         images_pred = renderer.render_mesh(mesh, mode='silhouettes')
-
+    
         loss = neg_iou_loss(images_pred, images_gt[:, 3]) + \
                 0.03 * laplacian_loss + \
                 0.0003 * flatten_loss
@@ -174,14 +176,14 @@ python demo6-optim_roughness_textures.py
 
     # load from Wavefront .obj file
     mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5 ,texture_type='surface', dr_type='softras')
-
+    
     # create renderer with SoftRas
     renderer = jr.Renderer(dr_type='softras')
-
+    
     #Roughness/Metallic setup 0.5 0.4
     metallic_textures = jt.zeros((1, mesh.faces.shape[1], 5 * 5, 1)).float32() + 0.5
     roughness_textures = jt.zeros((1, mesh.faces.shape[1], 5 * 5, 1)).float32() + 0.4
-
+    
     # draw object from different view
     loop = tqdm.tqdm(list(range(0, 360, 4)))
     writer = imageio.get_writer(os.path.join(args.output_dir, 'rotation.gif'), mode='I')
@@ -206,7 +208,7 @@ python demo6-optim_roughness_textures.py
     class Model(nn.Module):
     def __init__(self, filename_obj, filename_ref):
         super(Model, self).__init__()
-
+    
         # set template mesh
         self.template_mesh = jr.Mesh.from_obj(filename_obj, dr_type='softras')
         self.vertices = (self.template_mesh.vertices * 0.6).stop_grad()
@@ -214,22 +216,22 @@ python demo6-optim_roughness_textures.py
         # self.textures = self.template_mesh.textures
         texture_size = 4
         self.textures = jt.zeros((1, self.faces.shape[1], texture_size, texture_size, texture_size, 3)).float32()
-
+    
         # load reference image
         self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
-
+    
         # setup renderer
         self.renderer = jr.Renderer(camera_mode='look_at', perspective=False, light_intensity_directionals=0.0, light_intensity_ambient=1.0, dr_type='softras')
-
+    
     def execute(self):
         num = np.random.uniform(0, 360)
         self.renderer.transform.set_eyes_from_angles(2.732, 0, num)
         image = self.renderer(self.vertices, self.faces, jt.tanh(self.textures))
         loss = jt.sum((image - self.image_ref).sqr())
         return loss
-
+    
     model = Model(args.filename_obj, args.filename_ref)
-
+    
     optimizer = nn.Adam([model.textures], lr=0.1, betas=(0.5,0.999))
     loop = tqdm.tqdm(range(300))
     for num in loop:
@@ -249,7 +251,7 @@ python demo6-optim_roughness_textures.py
     class Model(nn.Module):
         def __init__(self, filename_obj, filename_ref):
             super(Model, self).__init__()
-
+    
             # set template mesh
             texture_size = 4
             self.template_mesh = jr.Mesh.from_obj(filename_obj, texture_res=texture_size,load_texture=True, dr_type='softras')
@@ -263,7 +265,7 @@ python demo6-optim_roughness_textures.py
             self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
             # setup renderer
             self.renderer = jr.Renderer(dr_type='softras', light_intensity_directionals=1.0, light_intensity_ambient=0.0)
-
+    
         def execute(self):
             self.renderer.transform.set_eyes_from_angles(2.732, 30, 140)
             image = self.renderer(self.vertices, self.faces, self.textures, metallic_textures=self.metallic_textures, roughness_textures=self.roughness_textures)
@@ -272,7 +274,7 @@ python demo6-optim_roughness_textures.py
 
 
     model = Model(args.filename_obj, args.filename_ref)
-
+    
     optimizer = nn.Adam([model.metallic_textures], lr=0.1, betas=(0.5,0.999))
     loop = tqdm.tqdm(range(20))
     for num in loop:
@@ -293,7 +295,7 @@ python demo6-optim_roughness_textures.py
     class Model(nn.Module):
         def __init__(self, filename_obj, filename_ref):
             super(Model, self).__init__()
-
+    
             # set template mesh
             texture_size = 4
             self.template_mesh = jr.Mesh.from_obj(filename_obj, texture_res=texture_size,load_texture=True, dr_type='softras')
@@ -307,16 +309,16 @@ python demo6-optim_roughness_textures.py
             self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
             # setup renderer
             self.renderer = jr.Renderer(dr_type='softras')
-
+    
         def execute(self):
             self.renderer.transform.set_eyes_from_angles(2.732, 30, 140)
             image = self.renderer(self.vertices, self.faces, self.textures, metallic_textures=self.metallic_textures, roughness_textures=self.roughness_textures)
             loss = jt.sum((image - self.image_ref).sqr())
             return loss
-
+    
     def main():
         model = Model(args.filename_obj, args.filename_ref)
-
+    
         optimizer = nn.Adam([model.roughness_textures], lr=0.1, betas=(0.5,0.999))
         loop = tqdm.tqdm(range(15))
         for num in loop:
@@ -342,6 +344,40 @@ python demo6-optim_roughness_textures.py
 ### 进阶教程2：人脸重建
 
 我们在JRender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
+
+### 进阶教程3：NERF
+
+Jrender 2.0版本新推出了Volume Rendering功能，基于该新特性，我们复现了发表于ECCV 2020的NERF，该论文利用神经辐射场表示场景，对合成场景及真实场景都可恢复到真实感渲染级效果。
+
+Jittor版本的NERF训练前需要下载数据集，下载后运行方法如下。
+
+```
+bash download_example_data.sh
+python nerf.py --config configs/lego.txt
+```
+
+下图是NERF在合成场景下的渲染效果：
+
+<p align="left">
+<img src="data/imgs/lego.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/hotdog.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/mic.gif" width="260" style="max-width:50%;">
+</p>
+
+下图是NERF在真实场景下的渲染效果：
+
+<p align="left">
+<img src="data/imgs/fern.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/flower.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/horn.gif" width="260" style="max-width:50%;">
+</p>
+
+基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是Pytorch版本的1.92-2.27倍，在不同数据集上具体的迭代速度如下：
+
+<p align="left">
+<img src="data/imgs/Synthesized.png" width="400" style="max-width:50%;">
+<img src="data/imgs/Real.png" width="400" style="max-width:50%;">
+</p>
 
 ## Citation
 

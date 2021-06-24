@@ -359,25 +359,27 @@ python nerf.py --config configs/lego.txt
 下图是NERF在合成场景下的渲染效果：
 
 <p align="left">
-<img src="data/imgs/lego.gif" width="260" style="max-width:50%;">
-<img src="data/imgs/hotdog.gif" width="260" style="max-width:50%;">
-<img src="data/imgs/mic.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/lego.gif" width="290" style="max-width:50%;">
+<img src="data/imgs/hotdog.gif" width="290" style="max-width:50%;">
+<img src="data/imgs/mic.gif" width="290" tyle="max-width:50%;">
 </p>
+
 
 下图是NERF在真实场景下的渲染效果：
 
 <p align="left">
-<img src="data/imgs/fern.gif" width="260" style="max-width:50%;">
-<img src="data/imgs/flower.gif" width="260" style="max-width:50%;">
-<img src="data/imgs/horn.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/fern.gif" width="290" style="max-width:50%;">
+<img src="data/imgs/flower.gif" width="290" style="max-width:50%;">
+<img src="data/imgs/horn.gif" width="290" style="max-width:50%;">
 </p>
+
 
 基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是Pytorch版本的1.92-2.27倍，在不同数据集上具体的迭代速度如下：
 
 <p align="left">
-<img src="data/imgs/Synthesized.png" width="400" style="max-width:50%;">
-<img src="data/imgs/Real.png" width="400" style="max-width:50%;">
+<img src="data/imgs/Speed.png" width="1000" style="max-width:100%;">
 </p>
+
 
 ## Citation
 

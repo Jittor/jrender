@@ -359,18 +359,18 @@ python nerf.py --config configs/lego.txt
 下图是NERF在合成场景下的渲染效果：
 
 <p align="left">
-<img src="data/imgs/lego.gif" width="280" style="max-width:50%;">
-<img src="data/imgs/hotdog.gif" width="280" style="max-width:50%;">
-<img src="data/imgs/mic.gif" width="280" tyle="max-width:50%;">
+<img src="data/imgs/lego.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/hotdog.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/mic.gif" width="260" tyle="max-width:50%;">
 </p>
 
 
 下图是NERF在真实场景下的渲染效果：
 
 <p align="left">
-<img src="data/imgs/fern.gif" width="280" style="max-width:50%;">
-<img src="data/imgs/flower.gif" width="280" style="max-width:50%;">
-<img src="data/imgs/horn.gif" width="280" style="max-width:50%;">
+<img src="data/imgs/fern.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/flower.gif" width="260" style="max-width:50%;">
+<img src="data/imgs/horn.gif" width="260" style="max-width:50%;">
 </p>
 
 

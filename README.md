@@ -377,7 +377,7 @@ python nerf.py --config configs/lego.txt
 基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是Pytorch版本的1.92-2.27倍，在不同数据集上具体的迭代速度如下：
 
 <p align="left">
-<img src="data/imgs/Speed.png" width="1000" style="max-width:100%;">
+<img src="data/imgs/Speed.png" width="900" style="max-width:90%;">
 </p>
 
 

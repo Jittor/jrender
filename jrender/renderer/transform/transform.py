@@ -16,6 +16,7 @@ class Projection(nn.Module):
         self.t = t
         self.dist_coeffs = dist_coeffs
         self.orig_size = orig_size
+        self._eye = None
 
         if isinstance(self.K, np.ndarray):
             self.K = jt.array(self.K).float32()

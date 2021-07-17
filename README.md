@@ -43,6 +43,21 @@
 
 使用JRender前需要安装好Jittor，Jittor安装方法在[此处](https://github.com/Jittor/jittor)。
 
+此外安装以下包：
+
+```
+jittor
+imageio==2.9.0
+imageio-ffmpeg==0.4.3
+matplotlib==3.3.0
+configargparse==1.3
+tensorboard==1.14.0
+tqdm==4.46.0
+opencv-python==4.2.0.34
+```
+
+接着使用下面的命令即可跑jrender的各种demo。
+
 ```
 git clone https://github.com/jittor/jrender.git
 cd jrender

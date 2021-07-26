@@ -105,7 +105,7 @@ class Lighting(nn.Module):
 
         elif self.light_mode == 'vertex':
             diffuseLight = jt.zeros(mesh.vertices.shape)
-            specualrLight = jt.zeros(mesh.vertices.shape)
+            specularLight = jt.zeros(mesh.vertices.shape)
             diffuseLight = self.ambient(diffuseLight)
             for directional in self.directionals:
                 [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)

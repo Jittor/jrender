@@ -96,6 +96,10 @@ class Transform(nn.Module):
     def execute(self, mesh):
         mesh.vertices = self.transformer(mesh.vertices)
         return mesh
+    
+    def tranpos(self, pos):
+        pos = self.transformer(pos)
+        return pos
 
     def set_eyes_from_angles(self, distances, elevations, azimuths):
         if self.camera_mode not in ['look', 'look_at']:

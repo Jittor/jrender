@@ -35,7 +35,7 @@ def GeometrySmith(N, V, L, roughness):
 def fresnelSchlick(cosTheta, F0):
     return F0 + (1.0 - F0) * jt.pow(1.0 - cosTheta,5).unsqueeze(2)
 
-def directional_lighting(diffuseLight, specularLight, normals, light_intensity=0.5, light_color=(1,1,1), light_direction=(0,1,0), positions=None, eye=None, with_specular=False, metallic_textures=None, roughness_textures=None):
+def directional_lighting(diffuseLight, specularLight, normals, light_intensity=0.5, light_color=(1,1,1), light_direction=(0,1,0), positions=None, eye=None, with_specular=False, metallic_textures=None, roughness_textures=None, Gbuffer="None", transform=None):
     eye = jt.array(eye, "float32")
     light_color = jt.array(light_color, "float32")
     light_direction = jt.normalize(jt.array(light_direction, "float32"), dim=0)
@@ -95,5 +95,13 @@ def directional_lighting(diffuseLight, specularLight, normals, light_intensity=0
         specularLight += specular * radiance
     else:
         diffuseLight += light_intensity * (light_color.unsqueeze(1) * cosine.unsqueeze(2))
-
+    if Gbuffer == "normal":
+        specularLight *= 0.0
+        diffuseLight = normals * 0.5 + 0.5
+    elif Gbuffer == "depth":
+        specularLight *= 0.0
+        viewpos = transform.tranpos(positions)
+        diffuseLight = viewpos/jt.max(viewpos[...,2])
+        diffuseLight[...,0] = viewpos[...,2]/jt.max(viewpos[...,2])
+        diffuseLight[...,1] = viewpos[...,2]/jt.max(viewpos[...,2])
     return [diffuseLight, specularLight]

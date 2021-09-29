@@ -62,36 +62,44 @@ class AmbientLighting(nn.Module):
 
 
 class DirectionalLighting(nn.Module):
-    def __init__(self, light_intensity=0.5, light_color=(1,1,1), light_direction=(0,1,0)):
+    def __init__(self, light_intensity=0.5, light_color=(1,1,1), light_direction=(0,1,0), Gbuffer='None', transform=None):
         super(DirectionalLighting, self).__init__()
 
         self.light_intensity = light_intensity
         self.light_color = light_color
         self.light_direction = light_direction
+        self.Gbuffer = Gbuffer
+        self.transform = transform
 
     def execute(self, diffuseLight, specularLight, normals, positions=None, eye=None, with_specular=False, metallic_textures=None, roughness_textures=None):
         return directional_lighting(diffuseLight, specularLight, normals,
                                         self.light_intensity, self.light_color, 
-                                        self.light_direction, positions, eye, with_specular, metallic_textures, roughness_textures)
+                                        self.light_direction, positions, eye, with_specular, metallic_textures, roughness_textures, self.Gbuffer, self.transform)
 
 
 class Lighting(nn.Module):
     def __init__(self, light_mode='surface',
                  intensity_ambient=0.5, color_ambient=[1,1,1],
                  intensity_directionals=0.5, color_directionals=[1,1,1],
-                 directions=[0,1,0]):
+                 directions=[0,1,0], Gbuffer='None', transform=None):
         super(Lighting, self).__init__()
 
         if light_mode not in ['surface', 'vertex']:
             raise ValueError('Lighting mode only support surface and vertex')
 
+        self.Gbuffer = Gbuffer
+        self.transform = transform
         self.light_mode = light_mode
         self.ambient = AmbientLighting(intensity_ambient, color_ambient)
         self.directionals = nn.ModuleList([DirectionalLighting(intensity_directionals,
                                                                color_directionals,
-                                                               directions)])
+                                                               directions, Gbuffer, transform)])
 
     def execute(self, mesh, eyes=None):
+        if self.Gbuffer == "albedo":
+            return mesh
+        if self.Gbuffer == "normal" or self.Gbuffer == "depth":
+            mesh.textures = jt.ones_like(mesh.textures) 
         if self.light_mode == 'surface':
             diffuseLight = jt.zeros(mesh.faces.shape)
             specularLight = jt.zeros(mesh.faces.shape)

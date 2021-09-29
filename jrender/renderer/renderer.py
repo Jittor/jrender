@@ -21,20 +21,19 @@ class Renderer(nn.Module):
                  light_mode='surface',
                  light_intensity_ambient=0.5, light_color_ambient=[1,1,1],
                  light_intensity_directionals=0.5, light_color_directionals=[1,1,1],
-                 light_directions=[0,1,0], dr_type='softras'):
+                 light_directions=[0,1,0], dr_type='softras', Gbuffer='None'):
         super(Renderer, self).__init__()
-        # light
-        self.lighting = Lighting(light_mode,
-                                    light_intensity_ambient, light_color_ambient,
-                                    light_intensity_directionals, light_color_directionals,
-                                    light_directions)
-
         # camera
         self.transform = Transform(camera_mode, 
                                       K, R, t, dist_coeffs, orig_size,
                                       perspective, viewing_angle, viewing_scale, 
                                       eye, camera_direction)
 
+        # light
+        self.lighting = Lighting(light_mode,
+                                    light_intensity_ambient, light_color_ambient,
+                                    light_intensity_directionals, light_color_directionals,
+                                    light_directions, Gbuffer, self.transform)
         # rasterization
         self.dr_type = dr_type
         if dr_type == 'softras':

@@ -13,21 +13,6 @@ def forward_soft_rasterize(face_vertices, textures,
     #include <cuda.h>
     #include <cuda_runtime.h>
 
-    // for the older gpus atomicAdd with double arguments does not exist
-    #if  __CUDA_ARCH__ < 600 and defined(__CUDA_ARCH__)
-    static __inline__ __device__ double atomicAdd(double* address, double val) {
-        unsigned long long int* address_as_ull = (unsigned long long int*)address;
-        unsigned long long int old = *address_as_ull, assumed;
-        do {
-            assumed = old;
-            old = atomicCAS(address_as_ull, assumed,
-                    __double_as_longlong(val + __longlong_as_double(assumed)));
-        // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN) } while (assumed != old);
-        } while (assumed != old);
-        return __longlong_as_double(old);
-    }
-    #endif
-
 
 namespace{
 
@@ -164,7 +149,7 @@ namespace{
     template <typename scalar_t>
     __device__ __forceinline__ void forward_barycentric_p2f_distance(scalar_t &dis, const scalar_t *w) {
         dis = w[0] > w[1] ? (w[1] > w[2] ? w[2] : w[1]) : (w[0] > w[2] ? w[2] : w[0]);
-        dis = dis > 0 ? pow(dis, 2) : -pow(dis, 2);
+        dis = dis > 0 ? dis*dis : -dis*dis;
     }
 
     template <typename scalar_t>
@@ -650,7 +635,7 @@ __device__ __forceinline__ void euclidean_p2f_distance(scalar_t &sign, scalar_t 
 template <typename scalar_t>
 __device__ __forceinline__ void forward_barycentric_p2f_distance(scalar_t &dis, const scalar_t *w) {
     dis = w[0] > w[1] ? (w[1] > w[2] ? w[2] : w[1]) : (w[0] > w[2] ? w[2] : w[0]);
-    dis = dis > 0 ? pow(dis, 2) : -pow(dis, 2);
+    dis = dis > 0 ? dis*dis : -dis*dis;
 }
 
 

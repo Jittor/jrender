@@ -58,7 +58,7 @@ def render(H, W, focal, chunk=1024*32, rays=None, c2w=None, intrinsic=None, ndc=
         if c2w_staticcam is not None:
             assert intrinsic is None
             rays_o, rays_d = pinhole_get_rays(H, W, focal, c2w_staticcam)
-        viewdirs = viewdirs / jt.norm(viewdirs, k=2, dim=-1, keepdim=True)
+        viewdirs = viewdirs / jt.norm(viewdirs, p=2, dim=-1, keepdim=True)
         viewdirs = jt.reshape(viewdirs, [-1,3]).float()
 
     sh = rays_d.shape # [..., 3]

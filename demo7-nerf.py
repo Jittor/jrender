@@ -162,7 +162,7 @@ def create_nerf(args):
     return render_kwargs_train, render_kwargs_test, start, grad_vars, optimizer
 
 def config_parser():
-    gpu = "gpu"+os.environ["CUDA_VISIBLE_DEVICES"]
+    gpu = "gpu"+os.environ.get("CUDA_VISIBLE_DEVICES", "0")
     import configargparse
     parser = configargparse.ArgumentParser()
     parser.add_argument('--config', is_config_file=True, 
@@ -460,7 +460,7 @@ def train():
         date = date[:date.rfind(":")].replace("-", "")\
                                         .replace(":", "")\
                                         .replace(" ", "_")
-        gpu_idx = os.environ["CUDA_VISIBLE_DEVICES"]
+        gpu_idx = os.environ.get("CUDA_VISIBLE_DEVICES", "0")
         log_dir = os.path.join("./logs", "summaries", "log_" + date +"_gpu" + gpu_idx)
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)

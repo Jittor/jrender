@@ -51,7 +51,7 @@ def sample_pdf(bins, weights, N_samples, det=False):
 
     denom = (cdf_g[...,1]-cdf_g[...,0])
     cond = jt.where(denom<1e-5)
-    denom[cond[0],cond[1]] = 1.
+    denom[cond[0],cond[1]] = 1.
     t = (u-cdf_g[...,0])/denom
     samples = bins_g[...,0] + t * (bins_g[...,1]-bins_g[...,0])
 

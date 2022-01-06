@@ -116,7 +116,7 @@ class Lighting(nn.Module):
             specularLight = jt.zeros(mesh.vertices.shape)
             diffuseLight = self.ambient(diffuseLight)
             for directional in self.directionals:
-                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
+                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.vertex_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
             if len(mesh.textures.shape) == 4:
                 mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0)
             elif len(mesh.textures.shape) == 6:

@@ -49,7 +49,7 @@ class N3mrRasterizer(nn.Module):
         
         if mode is None:
             return self.render(vertices, faces, textures)
-        elif mode is 'rgb':
+        elif mode == 'rgb':
             return self.render_rgb(vertices, faces, textures)
         elif mode == 'silhouettes':
             return self.render_silhouettes(vertices, faces)

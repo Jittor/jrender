@@ -191,7 +191,19 @@ class Mesh(object):
     @property
     def vertex_normals(self):
         if self._vertex_normals_update:
-            self._vertex_normals = vertex_normals(self.vertices, self.faces)
+            bs, nv = self.vertices.shape[:2]
+            bs, nf = self.faces.shape[:2]
+
+            faces = self.faces + (jt.arange(bs) * nv)[:, None, None]
+            vertices_faces = self.vertices.reshape((bs * nv, 3))[faces.long()]
+
+            faces = faces.view(-1, 3)
+            vertices_faces = vertices_faces.view(-1, 3, 3)
+
+            normals = (jt.cross(vertices_faces[:, 2] - vertices_faces[:, 1], vertices_faces[:, 0] - vertices_faces[:, 1])).reindex_reduce(op="sum", shape=[bs * nv, 3], indexes=["@e0(i0)", "i1"], extras=[faces[:, 1].long()]) + (jt.cross(vertices_faces[:, 0] - vertices_faces[:, 2], vertices_faces[:, 1] - vertices_faces[:, 2])).reindex_reduce(op="sum", shape=[bs * nv, 3], indexes=["@e0(i0)", "i1"], extras=[faces[:, 2].long()]) + (jt.cross(vertices_faces[:, 1] - vertices_faces[:, 0], vertices_faces[:, 2] - vertices_faces[:, 0])).reindex_reduce(op="sum", shape=[bs * nv, 3], indexes=["@e0(i0)", "i1"], extras=[faces[:, 0].long()])
+            
+            normals = jt.normalize(normals, p=2, eps=1e-6, dim=1)
+            self._vertex_normals = normals.reshape((bs, nv, 3))
             self._vertex_normals_update = False
         return self._vertex_normals
 

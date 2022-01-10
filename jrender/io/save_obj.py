@@ -34,8 +34,8 @@ def save_obj(filename, vertices, faces, textures=None, texture_res=16, texture_t
     assert texture_type in ['surface', 'vertex']
     assert texture_res >= 2
 
+    filename_mtl = filename[:-4] + '.mtl'
     if textures is not None and texture_type == 'surface':
-        filename_mtl = filename[:-4] + '.mtl'
         filename_texture = filename[:-4] + '.png'
         material_name = 'material_1'
         texture_image, vertices_textures = create_texture_image(textures, texture_res)

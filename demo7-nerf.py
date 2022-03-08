@@ -280,7 +280,7 @@ def config_parser():
                         help='frequency of testset saving')
     parser.add_argument("--i_tottest", type=int, default=400000, 
                         help='frequency of testset saving')
-    parser.add_argument("--i_video",   type=int, default=10000, 
+    parser.add_argument("--i_video",   type=int, default=50000, 
                         help='frequency of render_poses video saving')
 
     return parser
@@ -421,7 +421,7 @@ def train():
             return
 
     # Prepare raybatch tensor if batching random rays
-    accumulation_steps = 2
+    accumulation_steps = 1
     N_rand = args.N_rand//accumulation_steps
     use_batching = not args.no_batching
     if use_batching:

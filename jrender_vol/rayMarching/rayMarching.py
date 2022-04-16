@@ -57,21 +57,21 @@ def render_rays(ray_batch,
     raw = network_query_fn(pts, viewdirs, network_fn)
     rgb_map, disp_map, acc_map, weights, depth_map = integrator(raw, z_vals, rays_d, raw_noise_std, white_bkgd)
 
-    #usefulRayIndex = jt.nonzero(acc_map > 0.01)
-    if N_importance > 0:
+    rgb_map_0, disp_map_0, acc_map_0 = rgb_map, disp_map, acc_map
+    #usefulRayIndex = jt.nonzero(acc_map > 0.1)
+    if  N_importance > 0:
         # importance sampling
-        rgb_map_0, disp_map_0, acc_map_0 = rgb_map, disp_map, acc_map
         z_vals_mid = .5 * (z_vals[...,1:] + z_vals[...,:-1])
         z_samples = sample_pdf(z_vals_mid, weights[...,1:-1], N_importance, det=(perturb==0.))
         z_samples = z_samples.detach()
 
         _, z_vals = jt.argsort(jt.concat([z_vals, z_samples], -1), -1)
         pts = rays_o.unsqueeze(-2) + rays_d.unsqueeze(-2) * z_vals.unsqueeze(-1) # [N_rays, N_samples + N_importance, 3]
-
+        
         run_fn = network_fn if network_fine is None else network_fine
         raw = network_query_fn(pts, viewdirs, run_fn)
         rgb_map, disp_map, acc_map, weights, depth_map = integrator(raw, z_vals, rays_d, raw_noise_std, white_bkgd)
-
+        
     ret = {'rgb_map' : rgb_map, 'disp_map' : disp_map, 'acc_map' : acc_map}
     if retraw:
         ret['raw'] = raw

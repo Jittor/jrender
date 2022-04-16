@@ -114,7 +114,6 @@ def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=
             vertices.append([float(v) for v in line.split()[1:4]])
 
     vertices = jt.array(np.vstack(vertices)).float32()
-
     # load faces
     faces = []
     for line in lines:
@@ -129,7 +128,6 @@ def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=
                 v2 = int(vs[i + 2].split('/')[0])
                 faces.append((v0, v1, v2))
     faces = jt.array(np.vstack(faces).astype(np.int32)).float32() - 1
-    
     # load textures
     if load_texture and texture_type == 'surface':
         textures = None

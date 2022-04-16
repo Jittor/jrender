@@ -32,7 +32,8 @@ def batchify(fn, chunk):
         arr = []
         for i in range(0, inputs.shape[0], chunk):
             arr.append(fn(inputs[i:i+chunk]))
-            arr[-1].sync()
+            if jt.flags.no_grad:
+                jt.sync_all()
         return jt.concat(arr, 0)
     return ret
 
@@ -189,7 +190,7 @@ def config_parser():
                         help='learning rate')
     parser.add_argument("--lrate_decay", type=int, default=250, 
                         help='exponential learning rate decay (in 1000 steps)')
-    parser.add_argument("--chunk", type=int, default=1024*32, 
+    parser.add_argument("--chunk", type=int, default=1024*8, 
                         help='number of rays processed in parallel, decrease if running out of memory')
     parser.add_argument("--netchunk", type=int, default=1024*64, 
                         help='number of pts sent through network in parallel, decrease if running out of memory')
@@ -338,6 +339,8 @@ def train():
 
         near = args.near
         far = args.far
+        print(args.do_intrinsic)
+        print("hwf", hwf)
         print("near", near)
         print("far", far)
 
@@ -368,8 +371,7 @@ def train():
     H, W = int(H), int(W)
     hwf = [H, W, focal]
 
-    if args.render_test:
-        render_poses = np.array(poses[i_test])
+    render_poses = np.array(poses[i_test])
 
     # Create log dir and copy the config file
     basedir = args.basedir
@@ -403,18 +405,11 @@ def train():
     if args.render_only:
         print('RENDER ONLY')
         with jt.no_grad():
-            if args.render_test:
-                # render_test switches to test poses
-                images = images[i_test]
-            else:
-                # Default is smoother render_poses path
-                images = None
-
             testsavedir = os.path.join(basedir, expname, 'renderonly_{}_{:06d}'.format('test' if args.render_test else 'path', start))
             os.makedirs(testsavedir, exist_ok=True)
             print('test poses shape', render_poses.shape)
 
-            rgbs, _ = render_path(render_poses, hwf, args.chunk, render_kwargs_test, gt_imgs=images, savedir=testsavedir, render_factor=args.render_factor)
+            rgbs, _ = render_path(render_poses, hwf, args.chunk, render_kwargs_test, savedir=testsavedir, render_factor=args.render_factor)
             print('Done rendering', testsavedir)
             imageio.mimwrite(os.path.join(testsavedir, 'video.mp4'), to8b(rgbs), fps=30, quality=8)
 
@@ -447,7 +442,7 @@ def train():
         rays_rgb = jt.array(rays_rgb)
 
 
-    N_iters = 300000*accumulation_steps + 1
+    N_iters = 3000000*accumulation_steps + 1
     print('Begin')
     print('TRAIN views are', i_train)
     print('TEST views are', i_test)
@@ -487,13 +482,12 @@ def train():
 
         else:
             # Random from one image
+            np.random.seed(i)
             img_i = np.random.choice(i_train)
             target = images[img_i]#.squeeze(0)
             pose = poses[img_i, :3,:4]#.squeeze(0)
-
             if N_rand is not None:
-                rays_o, rays_d = get_rays(H, W, focal, pose, intrinsic)  # (H, W, 3), (H, W, 3)
-
+                rays_o, rays_d = pinhole_get_rays(H, W, focal, pose, intrinsic)  # (H, W, 3), (H, W, 3)
                 if i < args.precrop_iters:
                     dH = int(H//2 * args.precrop_frac)
                     dW = int(W//2 * args.precrop_frac)
@@ -519,7 +513,6 @@ def train():
         rgb, disp, acc, extras = render(H, W, focal, chunk=args.chunk, rays=batch_rays,
                                                 verbose=i < 10, retraw=True,
                                                 **render_kwargs_train)
-
         img_loss = img2mse(rgb, target_s)
         trans = extras['raw'][...,-1]
         loss = img_loss
@@ -556,8 +549,6 @@ def train():
             print('Saved checkpoints at', path)
 
         if i%args.i_video==0 and i > 0:
-            # import ipdb 
-            # ipdb.set_trace()
             # Turn on testing mode
             with jt.no_grad():
                 rgbs, disps = render_path(render_poses, hwf, args.chunk, render_kwargs_test, intrinsic = intrinsic)
@@ -568,27 +559,11 @@ def train():
                 imageio.mimwrite(moviebase + 'rgb.mp4', to8b(rgbs), fps=30, quality=8)
                 imageio.mimwrite(moviebase + 'disp.mp4', to8b(disps / np.max(disps)), fps=30, quality=8)
 
-        if i%args.i_testset==0 and i > 0:
-            si_test = i_test_tot if i%args.i_tottest==0 else i_test
-            testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
-            os.makedirs(testsavedir, exist_ok=True)
-            print('test poses shape', poses[si_test].shape)
-            with jt.no_grad():
-                rgbs, disps = render_path(jt.array(poses[si_test]), hwf, args.chunk, render_kwargs_test, gt_imgs=images[si_test], savedir=testsavedir, intrinsic = intrinsic)
-            if not jt.mpi or jt.mpi.local_rank()==0:
-                tars = images[si_test]
-                psnr = mse2psnr(img2mse(jt.array(rgbs), tars))
-                writer.add_scalar('test/psnr_tot', psnr.item(), global_step)
-                print('Saved test set')
 
 
-    
+                 
         if i%args.i_print==0:
             tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
-            if not jt.mpi or jt.mpi.local_rank()==0:
-                writer.add_scalar("train/loss", loss.item(), global_step)
-                writer.add_scalar("train/PSNR", psnr.item(), global_step)
-
             if i%args.i_img==0:
                 img_i=np.random.choice(i_val)
                 target = images[img_i]
@@ -605,7 +580,27 @@ def train():
                     writer.add_image('test/rgb', to8b(rgb), global_step, dataformats="HWC")
                     writer.add_image('test/target', target.numpy(), global_step, dataformats="HWC")
                     writer.add_scalar('test/psnr', psnr.item(), global_step)
+                
+            #del img_loss
+            #del trans
+            #del loss
+            #del psnr
+            #del img_loss0
+            #del psnr0
+            #del rgb, disp, acc, extras
+            jt.clean_graph()
+            jt.sync_all()
+            jt.gc()
+        
 
+            if i%args.i_testset==0 and i > 0:
+                si_test = i_test_tot if i%args.i_tottest==0 else i_test
+                testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
+                os.makedirs(testsavedir, exist_ok=True)
+                print('test poses shape', poses[si_test].shape)
+                with jt.no_grad():
+                    rgbs, disps = render_path(jt.array(poses[si_test]), hwf, args.chunk, render_kwargs_test, savedir=testsavedir, intrinsic = intrinsic)
+                jt.gc()
         global_step += 1
 
 

@@ -14,6 +14,8 @@ def batchify_rays(rays_flat, chunk=1024*32, **kwargs):
             if k not in all_ret:
                 all_ret[k] = []
             all_ret[k].append(ret[k])
+        if jt.flags.no_grad:
+            jt.sync_all()
 
     all_ret = {k : jt.concat(all_ret[k], 0) for k in all_ret}
     return all_ret

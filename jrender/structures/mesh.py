@@ -233,6 +233,7 @@ class Mesh(object):
         '''
         Create a Mesh object from a .obj file
         '''
+        print(filename_obj)
         if load_texture:
             vertices, faces, textures = load_obj(filename_obj,
                                                 normalization=normalization,

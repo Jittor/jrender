@@ -25,7 +25,6 @@ def integrator(raw, z_vals, rays_d, raw_noise_std=0, white_bkgd=False):
     noise = 0.
     if raw_noise_std > 0.:
         noise = jt.init.gauss(raw[...,3].shape, raw.dtype) * raw_noise_std
-
     alpha = raw2alpha(raw[...,3] + noise, dists)  # [N_rays, N_samples]
     weights = alpha * jt.cumprod(jt.concat([jt.ones((alpha.shape[0], 1)), 1.-alpha + 1e-10], -1), -1)[:, :-1]
     rgb_map = jt.sum(weights.unsqueeze(-1) * rgb, -2)  # [N_rays, 3]

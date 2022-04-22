@@ -32,7 +32,6 @@ def batchify(fn, chunk):
         arr = []
         for i in range(0, inputs.shape[0], chunk):
             arr.append(fn(inputs[i:i+chunk]))
-            arr[-1].sync()
         return jt.concat(arr, 0)
     return ret
 
@@ -579,7 +578,7 @@ def train():
                 tars = images[si_test]
                 psnr = mse2psnr(img2mse(jt.array(rgbs), tars))
                 writer.add_scalar('test/psnr_tot', psnr.item(), global_step)
-                print('Saved test set')
+                print('Saved test set', psnr.item())
 
 
     

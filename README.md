@@ -69,6 +69,16 @@ python demo5-optim_metallic_textures.py
 python demo6-optim_roughness_textures.py
 ```
 
+## 计图大赛Baseline
+Jrender仓库的NeRF实现可直接用作计图大赛可微渲染新视角生成题目的Baseline，安装好jittor和上述其他依赖包后可按照以下命令运行：
+```
+git clone https://github.com/jittor/jrender.git
+cd jrender
+bash download_competition_data.sh
+python demo7-nerf.py --config ./configs/Easyship.txt
+```
+
+
 ## 速度对比
 
 我们对PyTorch和Jittor渲染一个带有纹理的奶牛以及球形变为飞机做了时间对比测试，测试环境如下。

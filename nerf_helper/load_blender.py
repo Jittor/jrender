@@ -55,18 +55,19 @@ def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_intrinsi
             skip = testskip
             
         for frame in meta['frames'][::skip]:
-            fname = os.path.join(basedir, frame['file_path'] + '.png')
-            imgs.append(imageio.imread(fname))
+            if s != "test":
+                fname = os.path.join(basedir, frame['file_path'] + '.png')
+                imgs.append(imageio.imread(fname))
             a=np.array(frame['transform_matrix'])
-            # print("a0",a)
-            # a[[0,1]]=a[[1,0]]
-            # print("a1",a)
             poses.append(a)
-        imgs = (np.array(imgs) / 255.).astype(np.float32) # keep all 4 channels (RGBA)
         poses = np.array(poses).astype(np.float32)
-        counts.append(counts[-1] + imgs.shape[0])
-        all_imgs.append(imgs)
+        counts.append(counts[-1] + poses.shape[0])
         all_poses.append(poses)
+
+        if s != "test":
+            imgs = (np.array(imgs) / 255.).astype(np.float32) # keep all 4 channels (RGBA)
+            all_imgs.append(imgs)
+        
     
     i_split = [np.arange(counts[i], counts[i+1]) for i in range(3)]
     
@@ -76,15 +77,9 @@ def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_intrinsi
     H, W = imgs[0].shape[:2]
     camera_angle_x = float(meta['camera_angle_x'])
     focal = .5 * W / np.tan(.5 * camera_angle_x)
-
+    
     if do_intrinsic:
         a=np.array(meta['intrinsic_matrix'])
-        # H, W, focal = 480,640,585
-        # a = np.eye(4).astype(np.float32)
-        # a[0,0]=focal
-        # a[1,1]=focal
-        # a[0,2]=W/2.
-        # a[1,2]=H/2.
         if factor>1:
             a[:2]/=float(factor)
         a=np.linalg.inv(a)
@@ -92,26 +87,6 @@ def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_intrinsi
         print("intrinsic",intrinsic)
     
     render_poses = jt.stack([pose_spherical(angle, -30.0, 4.0) for angle in np.linspace(-180,180,40+1)[:-1]], 0)
-    # render_poses = []
-    # meta = metas['test']
-    # for frame in meta['frames'][:40]:
-    #     a=np.array(frame['transform_matrix'])
-    #     # print("a0",a)
-    #     # a[[0,1]]=a[[1,0]]
-    #     # print("a1",a)
-    #     render_poses.append(a)
-    # render_poses = jt.array(np.array(render_poses).astype(np.float32))
-    # render_poses = []
-    # meta = metas['test']
-    # start = np.array(meta['frames'][0]['transform_matrix'])
-    # render_poses.append(start)
-    # for f in range(testskip,len(meta['frames']),testskip):
-    #     end = np.array(meta['frames'][f]['transform_matrix'])
-    #     for i in range(10):
-    #         p=i/9.
-    #         render_poses.append(start*(1.0-p)+end*p)
-    #     start = end
-    # render_poses = jt.array(np.array(render_poses).astype(np.float32))
     
     if factor>1:
         H = H//factor
@@ -122,7 +97,6 @@ def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_intrinsi
         for i, img in enumerate(imgs):
             imgs_half_res[i] = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)
         imgs = imgs_half_res
-        # imgs = tf.image.resize_area(imgs, [400, 400]).numpy()
 
         
     if do_intrinsic:

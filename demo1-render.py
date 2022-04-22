@@ -26,7 +26,6 @@ def main():
 
     # load from Wavefront .obj file
     mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5, texture_type='surface', dr_type='softras')
-
     # create renderer with SoftRas
     renderer = jr.Renderer(dr_type='softras')
 

@@ -8,7 +8,7 @@ def pinhole_get_rays(H, W, focal, c2w, intrinsic = None):
     i = i.t()
     j = j.t()
     if intrinsic is None:
-        dirs = jt.stack([(i-W*.5)/focal, -(j-H*.5)/focal, -jt.ones_like(i)], -1).unsqueeze(-2)
+        dirs = jt.stack([-(i-W*.5)/focal, -(j-H*.5)/focal, jt.ones_like(i)], -1).unsqueeze(-2)
     else:
         i+=0.5
         j+=0.5

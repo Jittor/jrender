@@ -50,8 +50,7 @@ def sample_pdf(bins, weights, N_samples, det=False):
     bins_g = jt.gather(bins.unsqueeze(1).expand(matched_shape), 2, inds_g)
 
     denom = (cdf_g[...,1]-cdf_g[...,0])
-    cond = jt.where(denom<1e-5)
-    denom[cond[0],cond[1]] = 1.
+    denom[denom<1e-5] = 1.0
     t = (u-cdf_g[...,0])/denom
     samples = bins_g[...,0] + t * (bins_g[...,1]-bins_g[...,0])
 

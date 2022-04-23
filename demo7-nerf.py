@@ -51,7 +51,7 @@ def run_network(inputs, viewdirs, fn, embed_fn, embeddirs_fn, netchunk=1024*64):
     outputs = jt.reshape(outputs_flat, list(inputs.shape[:-1]) + [outputs_flat.shape[-1]])
     return outputs
 
-def render_path(render_poses, hwf, chunk, render_kwargs, gt_imgs=None, savedir=None, render_factor=0, intrinsic = None):
+def render_path(render_poses, hwf, chunk, render_kwargs, gt_imgs=None, savedir=None, render_factor=0, intrinsic = None, expname=""):
 
     H, W, focal = hwf
 
@@ -77,7 +77,7 @@ def render_path(render_poses, hwf, chunk, render_kwargs, gt_imgs=None, savedir=N
 
         if savedir is not None:
             rgb8 = to8b(rgbs[-1])
-            filename = os.path.join(savedir, '{:03d}.png'.format(i))
+            filename = os.path.join(savedir, expname + '_r_{:d}.png'.format(i))
             imageio.imwrite(filename, rgb8)
         del rgb
         del disp
@@ -188,7 +188,7 @@ def config_parser():
                         help='learning rate')
     parser.add_argument("--lrate_decay", type=int, default=250, 
                         help='exponential learning rate decay (in 1000 steps)')
-    parser.add_argument("--chunk", type=int, default=1024*8, 
+    parser.add_argument("--chunk", type=int, default=1024, 
                         help='number of rays processed in parallel, decrease if running out of memory')
     parser.add_argument("--netchunk", type=int, default=1024*64, 
                         help='number of pts sent through network in parallel, decrease if running out of memory')
@@ -557,20 +557,6 @@ def train():
                 imageio.mimwrite(moviebase + 'rgb.mp4', to8b(rgbs), fps=30, quality=8)
                 imageio.mimwrite(moviebase + 'disp.mp4', to8b(disps / np.max(disps)), fps=30, quality=8)
 
-        if i%args.i_testset==0 and i > 0:
-            si_test = i_test_tot if i%args.i_tottest==0 else i_test
-            testsavedir = os.path.join(basedir, expname, 'testset_{:06d}'.format(i))
-            os.makedirs(testsavedir, exist_ok=True)
-            print('test poses shape', poses[si_test].shape)
-            with jt.no_grad():
-                rgbs, disps = render_path(jt.array(poses[si_test]), hwf, args.chunk, render_kwargs_test, gt_imgs=images[si_test], savedir=testsavedir, intrinsic = intrinsic)
-            if not jt.mpi or jt.mpi.local_rank()==0:
-                tars = images[si_test]
-                psnr = mse2psnr(img2mse(jt.array(rgbs), tars))
-                writer.add_scalar('test/psnr_tot', psnr.item(), global_step)
-                print('Saved test set', psnr.item())
-
-
                  
         if i%args.i_print==0:
             tqdm.write(f"[TRAIN] Iter: {i} Loss: {loss.item()}  PSNR: {psnr.item()}")
@@ -591,13 +577,6 @@ def train():
                     writer.add_image('test/target', target.numpy(), global_step, dataformats="HWC")
                     writer.add_scalar('test/psnr', psnr.item(), global_step)
                 
-            #del img_loss
-            #del trans
-            #del loss
-            #del psnr
-            #del img_loss0
-            #del psnr0
-            #del rgb, disp, acc, extras
             jt.clean_graph()
             jt.sync_all()
             jt.gc()

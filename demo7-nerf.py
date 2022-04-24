@@ -588,7 +588,7 @@ def train():
                 os.makedirs(testsavedir, exist_ok=True)
                 print('test poses shape', poses[si_test].shape)
                 with jt.no_grad():
-                    rgbs, disps = render_path(jt.array(poses[si_test]), hwf, args.chunk, render_kwargs_test, savedir=testsavedir, intrinsic = intrinsic)
+                    rgbs, disps = render_path(jt.array(poses[si_test]), hwf, args.chunk, render_kwargs_test, savedir=testsavedir, intrinsic = intrinsic, expname = expname)
                 jt.gc()
         global_step += 1
 

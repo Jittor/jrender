@@ -77,6 +77,14 @@ cd jrender
 bash download_competition_data.sh
 python demo7-nerf.py --config ./configs/Easyship.txt
 ```
+我们使用单张NVIDIA TITAN RTX显卡，在以下环境测试configs/Easyship.txt时：
+
+* cuda: 11.6
+* driver: 510.47
+* jitter: 1.3.3.5
+
+
+训练速度为7.4 iter/s，训练显存为6.3G，测试显存为4.2G。如果您的训练速度，或占用显存与我们的数据明显不符，请随时联系我们解决，我们的比赛QQ群号为：1018591346。
 
 
 ## 速度对比
@@ -399,11 +407,7 @@ python nerf.py --config configs/lego.txt
 </p>
 
 
-基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是Pytorch版本的1.92-2.27倍，在不同数据集上具体的迭代速度如下：
-
-<p align="left">
-<img src="data/imgs/Speed.png" width="900" style="max-width:90%;">
-</p>
+基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是Pytorch-Nerf(bdb012e)版本的1.92-2.27倍。
 
 
 ## Citation

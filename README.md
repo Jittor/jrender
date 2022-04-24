@@ -77,6 +77,9 @@ cd jrender
 bash download_competition_data.sh
 python demo7-nerf.py --config ./configs/Easyship.txt
 ```
+
+本次比赛共包含5个测试场景，其中Easyship属于简单难度，Car、Coffee属于中等难度，Scar、Scarf属于高难度。请大家在Baseline的基础上做出自己的创新性改进。
+
 我们使用单张NVIDIA TITAN RTX显卡，在以下环境测试configs/Easyship.txt时：
 
 * cuda: 11.6
@@ -84,7 +87,14 @@ python demo7-nerf.py --config ./configs/Easyship.txt
 * jitter: 1.3.3.5
 
 
-训练速度为7.4 iter/s，训练显存为6.3G，测试显存为4.2G。如果您的训练速度，或占用显存与我们的数据明显不符，请随时联系我们解决，我们的比赛QQ群号为：1018591346。
+训练速度为7.4 iter/s，训练显存为6.3G，测试显存为4.2G。50000次迭代后测试结果为：
+
+
+https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-8ab7-c80e5bc3fe8a.mp4
+
+
+
+如果您的训练速度，占用显存或训练效果与我们的数据明显不符，请随时联系我们解决，我们的比赛QQ群号为：1018591346。
 
 
 ## 速度对比

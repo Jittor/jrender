@@ -440,7 +440,7 @@ def train():
         rays_rgb = jt.array(rays_rgb)
 
 
-    N_iters = 50000
+    N_iters = 51000
     print('Begin')
     print('TRAIN views are', i_train)
     print('TEST views are', i_test)

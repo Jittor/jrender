@@ -177,7 +177,7 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 
     import jrender as jr
     
-    # create a mesh object from args.filename_input
+    # create a mesh object from args.filename_input and enable SSS
     mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=30, texture_type='surface', dr_type='softras',normalization=True,with_SSS = True)
     
     # create a softras

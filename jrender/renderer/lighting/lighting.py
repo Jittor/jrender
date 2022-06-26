@@ -1,5 +1,4 @@
 from os import terminal_size
-import numpy as np
 import jittor as jt
 from jittor import nn
 from jrender.renderer.dr.softras.soft_rasterize import SoftRasterizeFunction
@@ -111,7 +110,7 @@ def SSS(diffuseLight, specular, mesh):
  
     #rgb blur    
 
-    Gaussian_basis = [0,1,4,16]
+    Gaussian_basis = [0,16,64,256]
 
     diffuse_sqrt=irradiance_Map.clone()
     final_map = jt.zeros_like(irradiance_Map)
@@ -121,7 +120,7 @@ def SSS(diffuseLight, specular, mesh):
     irradiance_Map_G=irradiance_Map[:,:,1]
     irradiance_Map_B=irradiance_Map[:,:,2]
 
-    Gaussian_weight_r = [0.1,0.2,0.7]
+    Gaussian_weight_r = [0.1,0.3,0.6]
     Gaussian_weight_g = [0.5,0.4,0.1]
     Gaussian_weight_b = [0.6,0.4,0.0]
     Gaussian_weight = [Gaussian_weight_r,Gaussian_weight_g,Gaussian_weight_b]

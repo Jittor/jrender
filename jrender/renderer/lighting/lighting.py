@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-import numpy as np
-import jittor as jt
-from jittor import nn
-
-=======
 from os import terminal_size
 import numpy as np
 import jittor as jt
@@ -12,7 +6,6 @@ from jrender.renderer.dr.softras.soft_rasterize import SoftRasterizeFunction
 from jrender.io.utils.load_textures import _load_textures_for_softras 
 from jrender.renderer.utils.gaussian_blur import gaussian_blur
 from jrender.renderer.utils.ToStretchMap import computeStretchMap
->>>>>>> master
 from . import *
 
 def lighting(faces, textures, intensity_ambient=0.5, intensity_directional=0.5,
@@ -53,25 +46,15 @@ def lighting(faces, textures, intensity_ambient=0.5, intensity_directional=0.5,
             direction = direction.unsqueeze(1)
         cos = nn.relu(jt.sum(normals * direction, dim=2))
         # may have to verify that the next line is correct
-<<<<<<< HEAD
-        light += intensity_directional * (color_directional.unsqueeze(1) * cos.unsqueeze(2))
-=======
         light += intensity_directional * \
             (color_directional.unsqueeze(1) * cos.unsqueeze(2))
->>>>>>> master
     # apply
     light = light.unsqueeze(-2).unsqueeze(-2).unsqueeze(-2)
     textures *= light
     return textures
 
-<<<<<<< HEAD
-
-class AmbientLighting(nn.Module):
-    def __init__(self, light_intensity=0.5, light_color=(1,1,1)):
-=======
 class AmbientLighting(nn.Module):
     def __init__(self, light_intensity=0.5, light_color=(1, 1, 1)):
->>>>>>> master
         super(AmbientLighting, self).__init__()
 
         self.light_intensity = light_intensity
@@ -80,15 +63,8 @@ class AmbientLighting(nn.Module):
     def execute(self, light):
         return ambient_lighting(light, self.light_intensity, self.light_color)
 
-<<<<<<< HEAD
-
-
-class DirectionalLighting(nn.Module):
-    def __init__(self, light_intensity=0.5, light_color=(1,1,1), light_direction=(0,1,0), Gbuffer='None', transform=None):
-=======
 class DirectionalLighting(nn.Module):
     def __init__(self, light_intensity=0.5, light_color=(1, 1, 1), light_direction=(0, 1, 0), Gbuffer='None', transform=None):
->>>>>>> master
         super(DirectionalLighting, self).__init__()
 
         self.light_intensity = light_intensity
@@ -99,10 +75,6 @@ class DirectionalLighting(nn.Module):
 
     def execute(self, diffuseLight, specularLight, normals, positions=None, eye=None, with_specular=False, metallic_textures=None, roughness_textures=None):
         return directional_lighting(diffuseLight, specularLight, normals,
-<<<<<<< HEAD
-                                        self.light_intensity, self.light_color, 
-                                        self.light_direction, positions, eye, with_specular, metallic_textures, roughness_textures, self.Gbuffer, self.transform)
-=======
                                     self.light_intensity, self.light_color,
                                     self.light_direction, positions, eye, with_specular, metallic_textures, roughness_textures, self.Gbuffer, self.transform)
 
@@ -182,20 +154,13 @@ def SSS(diffuseLight, specular, mesh):
     final_textures = _load_textures_for_softras(final_map,mesh.face_texcoords.squeeze(0),final_textures,is_update).unsqueeze(0)
 
     return final_textures
->>>>>>> master
 
 
 class Lighting(nn.Module):
     def __init__(self, light_mode='surface',
-<<<<<<< HEAD
-                 intensity_ambient=0.5, color_ambient=[1,1,1],
-                 intensity_directionals=0.5, color_directionals=[1,1,1],
-                 directions=[0,1,0], Gbuffer='None', transform=None):
-=======
                  intensity_ambient=0.5, color_ambient=[1, 1, 1],
                  intensity_directionals=0.5, color_directionals=[1, 1, 1],
                  directions=[0, 1, 0], Gbuffer='None', transform=None):
->>>>>>> master
         super(Lighting, self).__init__()
 
         if light_mode not in ['surface', 'vertex']:
@@ -213,19 +178,6 @@ class Lighting(nn.Module):
         if self.Gbuffer == "albedo":
             return mesh
         if self.Gbuffer == "normal" or self.Gbuffer == "depth":
-<<<<<<< HEAD
-            mesh.textures = jt.ones_like(mesh.textures) 
-        if self.light_mode == 'surface':
-            diffuseLight = jt.zeros(mesh.faces.shape)
-            specularLight = jt.zeros(mesh.faces.shape)
-            diffuseLight = self.ambient(diffuseLight)
-            for directional in self.directionals:
-                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures) 
-            if len(mesh.textures.shape) == 4: 
-                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0) 
-            elif len(mesh.textures.shape) == 6:
-                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0)
-=======
             mesh.textures = jt.ones_like(mesh.textures)
         if self.light_mode == 'surface':
             if mesh.normal_textures is not None:
@@ -258,28 +210,16 @@ class Lighting(nn.Module):
                 elif len(mesh.textures.shape) == 6:
                     mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(
                         2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0)
->>>>>>> master
 
         elif self.light_mode == 'vertex':
             diffuseLight = jt.zeros(mesh.vertices.shape)
             specularLight = jt.zeros(mesh.vertices.shape)
             diffuseLight = self.ambient(diffuseLight)
             for directional in self.directionals:
-<<<<<<< HEAD
                 [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.vertex_normals, mesh.vertices, eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
             if len(mesh.textures.shape) == 4:
                 mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0)
             elif len(mesh.textures.shape) == 6:
                 mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0) 
-=======
-                [diffuseLight, specularLight] = directional(
-                    diffuseLight, specularLight, mesh.vertex_normals, mesh.vertices, eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
-            if len(mesh.textures.shape) == 4:
-                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(
-                    2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0)
-            elif len(mesh.textures.shape) == 6:
-                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(
-                    2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0)
->>>>>>> master
 
         return mesh

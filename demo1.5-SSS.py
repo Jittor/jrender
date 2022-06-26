@@ -33,7 +33,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # draw object
-    writer = imageio.get_writer(os.path.join(args.output_dir, 'SSS.jpg'))
+    writer = imageio.get_writer(os.path.join(args.output_dir, 'noSSS.jpg'))
     renderer.transform.set_eyes_from_angles(camera_distance, elevation, azimuth)
     rgb = renderer.render_mesh(mesh, mode='rgb')
     image = rgb.numpy()[0].transpose((1, 2, 0))

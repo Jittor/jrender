@@ -19,32 +19,25 @@ def main():
     args = parser.parse_args()
     # other settings
     camera_distance = 2.0
-    elevation = -10
-    azimuth = 10
+    elevation = 20
+    azimuth = 16
 
     # load from Wavefront .obj file
     mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=30, texture_type='surface', dr_type='softras',normalization=True,with_SSS = True)
 
     # create renderer with SoftRas
     renderer = jr.Renderer(dr_type='softras',image_size=2048,light_intensity_ambient=0.4, light_color_ambient=[1,1,1],
-                 light_intensity_directionals=1.1, light_color_directionals=[1.0,0.8,0.8],
-                 light_directions=[0,-1,0],)
+                 light_intensity_directionals=1.1, light_color_directionals=[1.0,1.0,1.0],
+                 light_directions=[0,1,0],)
 
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # draw object from different view
-    loop = tqdm.tqdm(list(range(24, 28, 4)))
-    writer = imageio.get_writer(os.path.join(args.output_dir, 'SSS.gif'), mode='I')
-    imgs = []
-    from PIL import Image
-    for num, azimuth in enumerate(loop):
-        # rest mesh to initial state
-        mesh.reset_()
-        loop.set_description('Drawing rotation')
-        renderer.transform.set_eyes_from_angles(camera_distance, elevation, azimuth)
-        rgb = renderer.render_mesh(mesh, mode='rgb')
-        image = rgb.numpy()[0].transpose((1, 2, 0))
-        writer.append_data((255*image).astype(np.uint8))
+    # draw object
+    writer = imageio.get_writer(os.path.join(args.output_dir, 'SSS.jpg'))
+    renderer.transform.set_eyes_from_angles(camera_distance, elevation, azimuth)
+    rgb = renderer.render_mesh(mesh, mode='rgb')
+    image = rgb.numpy()[0].transpose((1, 2, 0))
+    writer.append_data((255*image).astype(np.uint8))
     writer.close()
 
 if __name__ == '__main__':

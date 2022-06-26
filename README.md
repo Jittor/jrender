@@ -195,13 +195,13 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 
 未使用SSS
 <p align="left">
-<img src="data/results/output_render/noSSS_2.jpg" width="200" \>
-<img src="data/results/output_render/noSSS_3.jpg" width="200" style="padding-left: 25px;" \>
+<img src="data/results/output_render/noSSS_1.jpg" width="200" \>
+<img src="data/results/output_render/noSSS_2.jpg" width="200" style="padding-left: 25px;" \>
 </p>
 使用SSS
 <p align="left">
-<img src="data/results/output_render/withSSS_2.jpg" width="200" \>
-<img src="data/results/output_render/withSSS_3.jpg" width="200" style="padding-left: 25px;" \>
+<img src="data/results/output_render/withSSS_1.jpg" width="200" \>
+<img src="data/results/output_render/withSSS_2.jpg" width="200" style="padding-left: 25px;" \>
 </p>
 
 ### 基础教程2：优化模型几何

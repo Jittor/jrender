@@ -1,7 +1,6 @@
 import jittor as jt
 import jrender as jr
 jt.flags.use_cuda = 1
-
 import os
 import tqdm
 import numpy as np
@@ -18,7 +17,6 @@ def main():
     parser.add_argument('-o', '--output-dir', type=str, 
         default=os.path.join(data_dir, 'results/output_render'))
     args = parser.parse_args()
-
     # other settings
     camera_distance = 2.732
     elevation = 30

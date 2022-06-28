@@ -26,12 +26,28 @@
 
 ## 基础教程
 
-* [基础教程1：渲染物体](#基础教程1：渲染物体)
-* [基础教程2：优化模型几何](#基础教程2：优化模型几何)
-* [基础教程3：渲染Specular材质](#基础教程3：渲染Specular材质)
-* [基础教程4：优化纹理](#基础教程4：优化纹理)
-* [基础教程5：优化金属度贴图](#基础教程5：优化金属度贴图)
-* [基础教程6：优化粗糙度贴图](#基础教程6：粗糙度贴图)
+- [Jrender 2.0 (Jittor渲染库)](#jrender-20-jittor渲染库)
+  - [渲染结果一览](#渲染结果一览)
+  - [介绍](#介绍)
+  - [示例](#示例)
+  - [基础教程](#基础教程)
+  - [进阶教程](#进阶教程)
+  - [使用](#使用)
+  - [计图大赛Baseline](#计图大赛baseline)
+  - [速度对比](#速度对比)
+  - [基础教程](#基础教程-1)
+    - [基础教程1：渲染物体](#基础教程1渲染物体)
+    - [基础教程1.5：渲染次表面散射](#基础教程15渲染次表面散射)
+    - [基础教程2：优化模型几何](#基础教程2优化模型几何)
+    - [基础教程3：渲染Specular材质](#基础教程3渲染specular材质)
+    - [基础教程4：优化纹理](#基础教程4优化纹理)
+    - [基础教程5：优化金属度贴图](#基础教程5优化金属度贴图)
+    - [基础教程6：优化粗糙度贴图](#基础教程6优化粗糙度贴图)
+  - [进阶教程](#进阶教程-1)
+    - [进阶教程1：ShapeNet数据集三维重建](#进阶教程1shapenet数据集三维重建)
+    - [进阶教程2：人脸重建](#进阶教程2人脸重建)
+    - [进阶教程3：NERF](#进阶教程3nerf)
+  - [Citation](#citation)
 
 ## 进阶教程
 
@@ -153,6 +169,39 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 <p align="left">
 <img src="data/imgs/softras-rgb.gif" width="200" \>
 <img src="data/imgs/softras-silhouettes.gif" width="200" style="padding-left: 25px;" \>
+</p>
+
+### 基础教程1.5：渲染次表面散射
+
+该教程使用JRender渲染皮肤的次表面散射。
+
+    import jrender as jr
+    
+    # create a mesh object from args.filename_input and enable SSS
+    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=30, texture_type='surface', dr_type='softras',normalization=True,with_SSS = True)
+    
+    # create a softras
+    renderer = jr.Renderer(dr_type='softras',image_size=2048,light_intensity_ambient=0.4, light_color_ambient=[1,1,1],
+                 light_intensity_directionals=1.1, light_color_directionals=[1.0,1.0,1.0],
+                 light_directions=[0,1,0],)
+    
+    # set the position of eyes
+    renderer.transform.set_eyes_from_angles(2.0, 20, 16)
+    
+    # render the given mesh
+    rgb = renderer.render_mesh(mesh)
+
+渲染的人体皮肤的次表面散射结果如下，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo1.5-SSS.py)。
+
+未使用SSS
+<p align="left">
+<img src="data/results/output_render/noSSS_1.jpg" width="200" \>
+<img src="data/results/output_render/noSSS_2.jpg" width="200" style="padding-left: 25px;" \>
+</p>
+使用SSS
+<p align="left">
+<img src="data/results/output_render/withSSS_1.jpg" width="200" \>
+<img src="data/results/output_render/withSSS_2.jpg" width="200" style="padding-left: 25px;" \>
 </p>
 
 ### 基础教程2：优化模型几何

@@ -37,7 +37,7 @@ class Mesh(object):
         save_obj: save a mesh to one .obj file
         voxelize: voxelize the vertices to voxel space
     '''
-    def __init__(self, vertices, faces, textures=None, texture_res=1, texture_type='surface', dr_type='softras', metallic_textures=None, roughness_textures=None):
+    def __init__(self, vertices, faces, textures=None, texture_res=1, texture_type='surface', dr_type='softras', metallic_textures=None, roughness_textures=None,normal_textures=None,TBN=None,with_SSS=False,face_texcoords=None):
         '''
         vertices, faces and textures (if not None) are expected to be Tensor objects
         '''
@@ -48,6 +48,9 @@ class Mesh(object):
             self._vertices = jt.array(self._vertices).float()
         if isinstance(self._faces, np.ndarray):
             self._faces = jt.array(self._faces).int()
+
+        self.texture_type = texture_type
+
         if len(self._vertices.shape) == 2:
             self._vertices = self._vertices.unsqueeze(0)
         if len(self._faces.shape) == 2:
@@ -63,9 +66,16 @@ class Mesh(object):
         self._face_vertices_update = True
         self._surface_normals = None
         self._surface_normals_update = True
+        self._surface_ResNormals=None
+        self._surface_ResNormals_update= True
         self._vertex_normals = None
         self._vertex_normals_update = True
         self._with_specular = True
+
+        self._face_texcoords= face_texcoords
+        if self._face_texcoords is not None:
+            self._face_texcoords=self._face_texcoords.unsqueeze(0)
+        self._with_SSS = with_SSS
 
         self._fill_back = False
         self.dr_type = dr_type
@@ -109,6 +119,12 @@ class Mesh(object):
             self._textures = textures
             self.texture_res = int(np.sqrt(self._textures.shape[2]))
 
+        #create normal_textures
+        if normal_textures is not None:
+            normal_textures=normal_textures.unsqueeze(0)
+            TBN=TBN.unsqueeze(0)
+        self._TBN=TBN             
+        self._normal_textures=normal_textures
         self._origin_vertices = self._vertices
         self._origin_faces = self._faces
         self._origin_textures = self._textures
@@ -116,6 +132,10 @@ class Mesh(object):
     @property
     def with_specular(self):
         return self._with_specular
+    
+    @property
+    def with_SSS(self):
+        return self._with_SSS
 
     @with_specular.setter
     def with_specular(self, with_specular):
@@ -182,12 +202,18 @@ class Mesh(object):
     @property
     def surface_normals(self):
         if self._surface_normals_update:
-            v10 = self.face_vertices[:, :, 0] - self.face_vertices[:, :, 1]
-            v12 = self.face_vertices[:, :, 2] - self.face_vertices[:, :, 1]
-            self._surface_normals = jt.normalize(jt.cross(v12, v10), p=2, dim=2, eps=1e-6)
+            if self.normal_textures is None:
+                v10 = self.face_vertices[:, :, 0] - self.face_vertices[:, :, 1]
+                v12 = self.face_vertices[:, :, 2] - self.face_vertices[:, :, 1]
+                self._surface_normals = jt.normalize(jt.cross(v12, v10), p=2, dim=2, eps=1e-6)
+            else:
+                surface_normals=jt.sum(self._normal_textures,dim=2)/self.texture_res**2
+                surface_normals=surface_normals.unsqueeze(2)
+                self._surface_normals=jt.normalize((jt.matmul(surface_normals,self.TBN).squeeze(2)),dim=2)
+                
             self._surface_normals_update = False
         return self._surface_normals
-
+        
     @property
     def vertex_normals(self):
         if self._vertex_normals_update:
@@ -228,28 +254,52 @@ class Mesh(object):
         self.textures = self._origin_textures
         self._fill_back = False
     
+    @property
+    def normal_textures(self):
+        return self._normal_textures
+
+    @property
+    def surface_ResNormals(self):
+        if self._surface_ResNormals_update:
+            TBN=self.TBN.unsqueeze(2)
+            TBN=TBN.repeat(1,1,self.texture_res**2,1,1)
+            normal_textures=self.normal_textures.unsqueeze(3)
+            surface_ResNormals=jt.matmul(normal_textures,TBN).squeeze(3)
+            self._surface_ResNormals=jt.normalize(surface_ResNormals,dim=3)
+            self._surface_ResNormals_update = False
+        return self._surface_ResNormals
+
+    @property
+    def face_texcoords(self):
+        return self._face_texcoords
+
+    @property
+    def TBN(self):
+        return self._TBN           
+
     @classmethod
-    def from_obj(cls, filename_obj, normalization=False, load_texture=False, dr_type='softras', texture_res=1, texture_type='surface', texture_wrapping='REPEAT', use_bilinear=True):
+    def from_obj(cls, filename_obj, normalization=False, load_texture=False, dr_type='softras', texture_res=1, texture_type='surface', texture_wrapping='REPEAT', use_bilinear=True, with_SSS = False):
         '''
         Create a Mesh object from a .obj file
         '''
-        print(filename_obj)
         if load_texture:
-            vertices, faces, textures = load_obj(filename_obj,
-                                                normalization=normalization,
-                                                texture_res=texture_res,
-                                                load_texture=True,
-                                                dr_type=dr_type,
-                                                texture_type=texture_type,
-                                                texture_wrapping=texture_wrapping, 
-                                                use_bilinear=use_bilinear)
+            vertices, faces, textures ,normal_textures,TBN , face_texcoords= load_obj(filename_obj,
+                                                        normalization=normalization,
+                                                        texture_res=texture_res,
+                                                        load_texture=True,
+                                                        dr_type=dr_type,
+                                                        texture_type=texture_type,
+                                                        texture_wrapping=texture_wrapping, 
+                                                        use_bilinear=use_bilinear)
         else:
             vertices, faces = load_obj(filename_obj,
                                     normalization=normalization,
                                     texture_res=texture_res,
                                     load_texture=False, dr_type=dr_type)
             textures = None
-        return cls(vertices, faces, textures, texture_res, texture_type, dr_type=dr_type)
+            normal_textures= None
+            TBN = None
+        return cls(vertices, faces, textures, texture_res, texture_type, dr_type=dr_type,normal_textures=normal_textures,TBN=TBN,with_SSS=with_SSS,face_texcoords=face_texcoords)
 
     def save_obj(self, filename_obj, save_texture=False, texture_res_out=16):
         if self.batch_size != 1:

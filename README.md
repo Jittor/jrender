@@ -193,11 +193,6 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 
 渲染的人体皮肤的次表面散射结果如下，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo1.5-SSS.py)。
 
-未使用SSS
-<p align="left">
-<img src="data/results/output_render/noSSS_1.jpg" width="200" \>
-<img src="data/results/output_render/noSSS_2.jpg" width="200" style="padding-left: 25px;" \>
-</p>
 使用SSS
 <p align="left">
 <img src="data/results/output_render/withSSS_1.jpg" width="200" \>

@@ -113,6 +113,22 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 如果您的训练速度，占用显存或训练效果与我们的数据明显不符，请随时联系我们解决，我们的比赛QQ群号为：1018591346。
 
 
+该赛题可以从多方面进行思考，包括相机位姿、训练方式和网络结构等，我们给出如下简单的修改示例，具体修改内容见```configs/Easyship-improved.txt```：
+
+
+* 归一化训练位姿
+* 加权采样训练像素
+* 网络输入增加采样点深度
+
+
+50000次迭代后测试结果对比，其中右图为改进后结果：
+
+<p align="left">
+<img src="data/imgs/easyship-origin.png" width="200" \>
+<img src="data/imgs/easyship-improved.png" width="200" style="padding-left: 25px;" \>
+</p>
+
+
 ## 速度对比
 
 我们对PyTorch和Jittor渲染一个带有纹理的奶牛以及球形变为飞机做了时间对比测试，测试环境如下。

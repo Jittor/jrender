@@ -42,7 +42,7 @@ def run_network(inputs, viewdirs, fn, embed_fn, embeddirs_fn, netchunk=1024*64):
     embedded = embed_fn(inputs_flat)
 
     if viewdirs is not None:
-        input_dirs = viewdirs[:,None].expand(inputs.shape)
+        input_dirs = viewdirs[:,None].expand([*inputs.shape[:-1], viewdirs.shape[-1]])
         input_dirs_flat = jt.reshape(input_dirs, [-1, input_dirs.shape[-1]])
         embedded_dirs = embeddirs_fn(input_dirs_flat)
         embedded = jt.concat([embedded, embedded_dirs], -1)
@@ -94,7 +94,12 @@ def render_path(render_poses, hwf, chunk, render_kwargs, gt_imgs=None, savedir=N
 def create_nerf(args):
     """Instantiate NeRF's MLP model.
     """
-    embed_fn, input_ch = get_embedder(args.multires, args.i_embed)
+    input_dims = 3
+    if args.embed_depth:
+        input_dims += 1
+        print ('embed depth')
+    print ('input dims: {}'.format(input_dims))
+    embed_fn, input_ch = get_embedder(args.multires, args.i_embed, input_dims)
 
     input_ch_views = 0
     embeddirs_fn = None
@@ -134,6 +139,21 @@ def create_nerf(args):
     else:
         ckpts = [os.path.join(basedir, expname, f) for f in sorted(os.listdir(os.path.join(basedir, expname))) if 'tar' in f]
 
+    print('Found ckpts', ckpts)
+    if len(ckpts) > 0 and not args.no_reload:
+        ckpt_path = ckpts[-1]
+        print('Reloading from', ckpt_path)
+        ckpt = jt.load(ckpt_path)
+
+        start = ckpt['global_step']
+        if 'optimizer_state_dict' in ckpt.keys():
+            optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+
+        # Load model
+        model.load_state_dict(ckpt['network_fn_state_dict'])
+        if model_fine is not None:
+            model_fine.load_state_dict(ckpt['network_fine_state_dict'])
+
     ##########################
 
     render_kwargs_train = {
@@ -146,6 +166,7 @@ def create_nerf(args):
         'use_viewdirs' : args.use_viewdirs,
         'white_bkgd' : args.white_bkgd,
         'raw_noise_std' : args.raw_noise_std,
+        'embed_depth' : args.embed_depth,
     }
 
     # NDC only good for LLFF-style forward facing data
@@ -180,6 +201,8 @@ def config_parser():
                         help='channels per layer')
     parser.add_argument("--netdepth_fine", type=int, default=8, 
                         help='layers in fine network')
+    parser.add_argument("--embed_depth", type=bool, default=False,
+                        help='embed distance bwtween pts and camera position, which could help model to converge but may be harmful to generalize')
     parser.add_argument("--netwidth_fine", type=int, default=256, 
                         help='channels per layer in fine network')
     parser.add_argument("--N_rand", type=int, default=32*32*4, 
@@ -237,6 +260,8 @@ def config_parser():
                         help='will load 1/N images from test/val sets, useful for large datasets like deepvoxels')
     parser.add_argument("--faketestskip", type=int, default=1, 
                         help='will load 1/N images from test/val sets, useful for large datasets like deepvoxels')
+    parser.add_argument("--valid_ratio", type=float, default=-1.0,
+                        help='importance sampling for training pixel selection, help to convergence, useful only for rgba images')
 
     ## deepvoxels flags
     parser.add_argument("--shape", type=str, default='greek', 
@@ -255,6 +280,10 @@ def config_parser():
                         help='use intrinsic matrix')
     parser.add_argument("--blender_factor", type=int, default=1, 
                         help='downsample factor for blender images')
+    parser.add_argument("--do_pose_normalization", type=bool, default=False,
+                        help='normalize all poses, useful for 360 scenes')
+    parser.add_argument("--target_radius", type=float, default=1.0,
+                        help='radius of the sphere for normalization, used only if do_pose_normalization is set true')
 
     ## llff flags
     parser.add_argument("--factor", type=int, default=8, 
@@ -269,6 +298,8 @@ def config_parser():
                         help='will take every 1/N images as LLFF test set, paper uses 8')
 
     # logging/saving options
+    parser.add_argument("--N_iters",   type=int, default=51000,
+                        help='number of iterations')
     parser.add_argument("--i_print",   type=int, default=100, 
                         help='frequency of console printout and metric loggin')
     parser.add_argument("--i_img",     type=int, default=50000, 
@@ -327,9 +358,11 @@ def train():
             testskip = faketestskip
             faketestskip = 1
         if args.do_intrinsic:
-            images, poses, intrinsic, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip, args.blender_factor, True)
+            images, poses, intrinsic, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip, 
+                                                                        args.blender_factor, args.do_pose_normalization, args.target_radius, True)
         else:
-            images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip, args.blender_factor)
+            images, poses, render_poses, hwf, i_split = load_blender_data(args.datadir, args.half_res, args.testskip, 
+                                                                        args.blender_factor, args.do_pose_normalization, args.target_radius)
         print('Loaded blender', images.shape, render_poses.shape, hwf, args.datadir)
         i_train, i_val, i_test = i_split
         i_test_tot = i_test
@@ -341,6 +374,13 @@ def train():
         print("hwf", hwf)
         print("near", near)
         print("far", far)
+        if args.do_pose_normalization:
+            print ("using normalized pose, radius {:.2f}".format(args.target_radius))
+
+        if images.shape[-1] == 4:
+            masks = images[..., -1:]
+        else:
+            masks = np.ones_like(images[..., :1])
 
         if args.white_bkgd:
             images = images[...,:3]*images[...,-1:] + (1.-images[...,-1:])
@@ -436,11 +476,12 @@ def train():
     # Move training data to GPU
     images = jt.array(images.astype(np.float32))
     poses = jt.array(poses)
+    masks = jt.array(masks)
     if use_batching:
         rays_rgb = jt.array(rays_rgb)
 
 
-    N_iters = 51000
+    N_iters = args.N_iters
     print('Begin')
     print('TRAIN views are', i_train)
     print('TEST views are', i_test)
@@ -484,6 +525,7 @@ def train():
             img_i = np.random.choice(i_train)
             target = images[img_i]#.squeeze(0)
             pose = poses[img_i, :3,:4]#.squeeze(0)
+            mask = masks[img_i]
             if N_rand is not None:
                 rays_o, rays_d = pinhole_get_rays(H, W, focal, pose, intrinsic)  # (H, W, 3), (H, W, 3)
                 if i < args.precrop_iters:
@@ -494,14 +536,27 @@ def train():
                             jt.linspace(H//2 - dH, H//2 + dH - 1, 2*dH), 
                             jt.linspace(W//2 - dW, W//2 + dW - 1, 2*dW)
                         ), -1)
+                    center_mask = mask[coords[:, :, 0], coords[:, :, 0]]
+                    mask = jt.reshape(center_mask, (2*dH, 2*dW, 1))
                     if i == start:
                         print(f"[Config] Center cropping of size {2*dH} x {2*dW} is enabled until iter {args.precrop_iters}")                
                 else:
                     coords = jt.stack(jt.meshgrid(jt.linspace(0, H-1, H), jt.linspace(0, W-1, W)), -1)  # (H, W, 2)
 
-                coords = jt.reshape(coords, [-1,2])  # (H * W, 2)
-                select_inds = np.random.choice(coords.shape[0], size=[N_rand], replace=False)  # (N_rand,)
-                select_coords = coords[select_inds].int()  # (N_rand, 2)
+                valid_coords_mask = jt.nonzero(mask > 0.)
+                invalid_coords_mask = jt.nonzero(mask == 0.)
+                if valid_coords_mask.shape[0] > invalid_coords_mask.shape[0] or args.valid_ratio < 0:
+                    coords = jt.reshape(coords, [-1,2])  # (H * W, 2)
+                    select_inds = np.random.choice(coords.shape[0], size=[N_rand], replace=False)  # (N_rand,)
+                    select_coords = coords[select_inds].int()  # (N_rand, 2)
+                else:
+                    sample_size = np.min([int(N_rand * args.valid_ratio), valid_coords_mask.shape[0]])
+                    select_valid_inds = np.random.choice(valid_coords_mask.shape[0], size=[sample_size], replace=False)
+                    select_invalid_inds = np.random.choice(invalid_coords_mask.shape[0], size=[N_rand - sample_size], replace=False)
+                    select_coords_valid = valid_coords_mask[select_valid_inds]
+                    select_coords_invalid = invalid_coords_mask[select_invalid_inds]
+                    select_coords = jt.concat([select_coords_valid, select_coords_invalid], dim=0).int()
+
                 rays_o = rays_o[select_coords[:, 0], select_coords[:, 1]]  # (N_rand, 3)
                 rays_d = rays_d[select_coords[:, 0], select_coords[:, 1]]  # (N_rand, 3)
                 batch_rays = jt.stack([rays_o, rays_d], 0)

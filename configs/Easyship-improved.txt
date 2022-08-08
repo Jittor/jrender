@@ -1,0 +1,27 @@
+expname = Easyship
+basedir = ./logs
+datadir = ./data/nerf_synthetic/Easyship
+dataset_type = blender
+
+do_pose_normalization = True
+no_batching = True
+target_radius = 1.0
+
+embed_depth = True
+use_viewdirs = True
+white_bkgd = True
+lrate_decay = 500
+
+N_samples = 64
+N_importance = 128
+N_rand = 1024
+valid_ratio = 0.75
+
+precrop_iters = 500
+precrop_frac = 0.5
+
+
+testskip=1
+half_res = True
+near = 0.2
+far = 1.8

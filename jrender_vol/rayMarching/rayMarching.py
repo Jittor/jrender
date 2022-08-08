@@ -14,7 +14,8 @@ def render_rays(ray_batch,
                 network_fine=None,
                 white_bkgd=False,
                 raw_noise_std=0.,
-                verbose=False):
+                verbose=False,
+                **kwargs):
     """Volumetric rendering.
     Args:
       ray_batch: array of shape [batch_size, ...]. All information necessary
@@ -53,6 +54,8 @@ def render_rays(ray_batch,
 
     z_vals = sample(N_rays, N_samples, lindisp, perturb, near, far)
     pts = rays_o.unsqueeze(-2) + rays_d.unsqueeze(-2) * z_vals.unsqueeze(-1) # [N_rays, N_samples, 3]
+    if kwargs.get('embed_depth', False):
+      pts = jt.concat([pts, z_vals.unsqueeze(-1)], dim=-1)
     
     raw = network_query_fn(pts, viewdirs, network_fn)
     rgb_map, disp_map, acc_map, weights, depth_map = integrator(raw, z_vals, rays_d, raw_noise_std, white_bkgd)
@@ -67,6 +70,8 @@ def render_rays(ray_batch,
 
         _, z_vals = jt.argsort(jt.concat([z_vals, z_samples], -1), -1)
         pts = rays_o.unsqueeze(-2) + rays_d.unsqueeze(-2) * z_vals.unsqueeze(-1) # [N_rays, N_samples + N_importance, 3]
+        if kwargs.get('embed_depth', False):
+          pts = jt.concat([pts, z_vals.unsqueeze(-1)], dim=-1)
         
         run_fn = network_fn if network_fine is None else network_fine
         raw = network_query_fn(pts, viewdirs, run_fn)

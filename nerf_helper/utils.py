@@ -43,13 +43,13 @@ class Embedder:
         return jt.concat([fn(inputs) for fn in self.embed_fns], -1)
 
 
-def get_embedder(multires, i=0):
+def get_embedder(multires, i=0, input_dims=3):
     if i == -1:
         return nn.Identity(), 3
     
     embed_kwargs = {
                 'include_input' : True,
-                'input_dims' : 3,
+                'input_dims' : input_dims,
                 'max_freq_log2' : multires-1,
                 'num_freqs' : multires,
                 'log_sampling' : True,

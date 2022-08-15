@@ -179,36 +179,28 @@ class Lighting(nn.Module):
         if self.Gbuffer == "normal" or self.Gbuffer == "depth":
             mesh.textures = jt.ones_like(mesh.textures)
         if self.light_mode == 'surface':
+            diffuseLight = jt.zeros(mesh.textures.shape)
+            specularLight = jt.zeros(mesh.textures.shape)
+            diffuseLight = self.ambient(diffuseLight)
             if mesh.normal_textures is not None:
-                diffuseLight = jt.zeros(mesh.textures.shape)
-                specularLight = jt.zeros(mesh.textures.shape)
-                diffuseLight = self.ambient(diffuseLight)
                 for directional in self.directionals:
                     [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_ResNormals, (jt.sum(
                         mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
-                if len(mesh.textures.shape) == 4 and mesh.with_SSS:
-                    mesh.textures = jt.clamp(
-                        SSS(diffuseLight, specularLight, mesh), 0.0, 1.0)    
-                elif len(mesh.textures.shape) == 4 and mesh.with_SSS == False:
-                    mesh.textures = jt.clamp(
-                        mesh.textures * diffuseLight + jt.ones_like(mesh.textures) * specularLight, 0.0, 1.0)
+                diffuseLight=diffuseLight.unsqueeze(2)
+                specularLight=specularLight.unsqueeze(2)
             else:
-                diffuseLight = jt.zeros(mesh.faces.shape)
-                specularLight = jt.zeros(mesh.faces.shape)
-                diffuseLight = self.ambient(diffuseLight)
                 for directional in self.directionals:
                     [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.surface_normals, (jt.sum(
                         mesh.face_vertices, dim=2) / 3.0), eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
-                if len(mesh.textures.shape) ==  4:
-                    if mesh.with_SSS:
-                        mesh.textures = jt.clamp(
-                            SSS(diffuseLight.unsqueeze(2), specularLight.unsqueeze(2), mesh), 0.0, 1.0)
-                    else:
-                        mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(
-                            2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0)
-                elif len(mesh.textures.shape) == 6:
-                    mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(
-                        2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0)
+            if len(mesh.textures.shape) ==  4 and mesh.with_SSS:
+                mesh.textures = jt.clamp(
+                    SSS(diffuseLight, specularLight, mesh), 0.0, 1.0)
+            elif len(mesh.textures.shape) ==  4 and mesh.with_SSS == False:
+                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(
+                    2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0)
+            elif len(mesh.textures.shape) == 6:
+                mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2).unsqueeze(2).unsqueeze(
+                    2) + jt.ones_like(mesh.textures) * specularLight.unsqueeze(2).unsqueeze(2).unsqueeze(2), 0.0, 1.0)
 
         elif self.light_mode == 'vertex':
             diffuseLight = jt.zeros(mesh.vertices.shape)

@@ -47,7 +47,6 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
             continue
         if line.split()[0] == 'vt':
             vertices.append([float(v) for v in line.split()[1:3]])
-    vertices = np.vstack(vertices).astype(np.float32)
 
     # load faces for textures
     faces = []
@@ -76,8 +75,11 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
                 material_names.append(material_name)
         if line.split()[0] == 'usemtl':
             material_name = line.split()[1]
-    faces = np.vstack(faces).astype(np.int32) - 1
-    faces = vertices[faces]                                         #face_texcoords
+    
+    if len(vertices) != 0:
+        vertices = np.vstack(vertices).astype(np.float32)
+        faces = np.vstack(faces).astype(np.int32) - 1
+        faces = vertices[faces]                                         #face_texcoords
     faces = jt.array(faces).float32()
 
     colors, texture_filenames ,normal_filename= load_mtl(filename_mtl)

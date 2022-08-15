@@ -215,7 +215,7 @@ class Mesh(object):
         return self._surface_normals
         
     @property
-    def vertex_normals(self):
+    def vertex_normals(self):                       #没有直接从.obj读取vertex_normals的功能
         if self._vertex_normals_update:
             bs, nv = self.vertices.shape[:2]
             bs, nf = self.faces.shape[:2]
@@ -283,7 +283,7 @@ class Mesh(object):
         Create a Mesh object from a .obj file
         '''
         if load_texture:
-            vertices, faces, textures ,normal_textures,TBN , face_texcoords= load_obj(filename_obj,
+            vertices, faces, textures ,normal_textures,TBN,face_texcoords= load_obj(filename_obj,
                                                         normalization=normalization,
                                                         texture_res=texture_res,
                                                         load_texture=True,

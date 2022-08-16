@@ -7,6 +7,7 @@ from jittor import nn
 from ..utils import *
 from . import *
 
+
 class Projection(nn.Module):
     def __init__(self, K, R, t, dist_coeffs=None, orig_size=512):
         super(Projection, self).__init__()
@@ -55,9 +56,9 @@ class LookAt(nn.Module):
 
 
 class Look(nn.Module):
-    def __init__(self, camera_direction=[0,0,1], perspective=True, viewing_angle=30, viewing_scale=1.0, eye=None):
+    def __init__(self, camera_direction=[0, 0, 1], perspective=True, viewing_angle=30, viewing_scale=1.0, eye=None):
         super(Look, self).__init__()
-        
+
         self.perspective = perspective
         self.viewing_angle = viewing_angle
         self.viewing_scale = viewing_scale
@@ -79,24 +80,28 @@ class Look(nn.Module):
 
 class Transform(nn.Module):
     def __init__(self, camera_mode='projection', K=None, R=None, t=None, dist_coeffs=None, orig_size=512,
-                 perspective=True, viewing_angle=30, viewing_scale=1.0, 
-                 eye=None, camera_direction=[0,0,1]):
+                 perspective=True, viewing_angle=30, viewing_scale=1.0,
+                 eye=None, camera_direction=[0, 0, 1]):
         super(Transform, self).__init__()
 
         self.camera_mode = camera_mode
         if self.camera_mode == 'projection':
             self.transformer = Projection(K, R, t, dist_coeffs, orig_size)
         elif self.camera_mode == 'look':
-            self.transformer = Look(perspective, viewing_angle, viewing_scale, eye, camera_direction)
+            self.transformer = Look(camera_direction, perspective, viewing_angle, viewing_scale, eye)
         elif self.camera_mode == 'look_at':
             self.transformer = LookAt(perspective, viewing_angle, viewing_scale, eye)
         else:
             raise ValueError('Camera mode has to be one of projection, look or look_at')
 
+        self.eye=eye
+        self.camera_direction=camera_direction
+        self.viewing_angle=viewing_angle
+
     def execute(self, mesh):
         mesh.vertices = self.transformer(mesh.vertices)
         return mesh
-    
+
     def tranpos(self, pos):
         pos = self.transformer(pos)
         return pos
@@ -110,6 +115,16 @@ class Transform(nn.Module):
         if self.camera_mode not in ['look', 'look_at']:
             raise ValueError('Projection does not need to set eyes')
         self.transformer._eye = eyes
+
+    def view_transform(self, vertices):
+        if self.camera_mode == 'look':
+            vertices = look_at(vertices, self.eye)
+        elif self.camera_mode == 'look_at':
+            vertices = look(vertices, self.eye, self.camera_direction)
+        return vertices
+
+    def projection_transform(self,vertices):
+        return perspective(vertices, self.viewing_angle)
 
     @property
     def eyes(self):

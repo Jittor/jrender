@@ -94,9 +94,9 @@ class Transform(nn.Module):
         else:
             raise ValueError('Camera mode has to be one of projection, look or look_at')
 
-        self.eye=eye
-        self.camera_direction=camera_direction
-        self.viewing_angle=viewing_angle
+        self.eye = eye
+        self.camera_direction = camera_direction
+        self.viewing_angle = viewing_angle
 
     def execute(self, mesh):
         mesh.vertices = self.transformer(mesh.vertices)
@@ -117,13 +117,13 @@ class Transform(nn.Module):
         self.transformer._eye = eyes
 
     def view_transform(self, vertices):
-        if self.camera_mode == 'look':
+        if self.camera_mode == 'look_at':
             vertices = look_at(vertices, self.eye)
-        elif self.camera_mode == 'look_at':
+        elif self.camera_mode == 'look':
             vertices = look(vertices, self.eye, self.camera_direction)
         return vertices
 
-    def projection_transform(self,vertices):
+    def projection_transform(self, vertices):
         return perspective(vertices, self.viewing_angle)
 
     @property

@@ -1,7 +1,5 @@
-import math
 import jittor as jt
 from jittor import nn
-import numpy
 
 from .lighting import *
 from .transform import *

@@ -45,15 +45,11 @@ class SoftRasterizeFunction(Function):
         gamma_val = self.gamma_val
         dist_eps = self.dist_eps
         fill_back = self.fill_back
-        dist_func = self.dist_func
-        aggr_func_rgb = self.aggr_func_rgb
-        aggr_func_alpha = self.aggr_func_alpha
-        texture_type = self.texture_type
 
-        self.func_dist_type = func_dist_map[dist_func]
-        self.func_rgb_type = func_rgb_map[aggr_func_rgb]
-        self.func_alpha_type = func_alpha_map[aggr_func_alpha]
-        self.texture_type = func_map_sample[texture_type]
+        func_dist_type = func_dist_map[self.dist_func]
+        func_rgb_type = func_rgb_map[self.aggr_func_rgb]
+        func_alpha_type = func_alpha_map[self.aggr_func_alpha]
+        texture_type = func_map_sample[self.texture_type]
 
         face_vertices = face_vertices.clone()
         textures = textures.clone()
@@ -74,9 +70,9 @@ class SoftRasterizeFunction(Function):
                                                        faces_info, aggrs_info,
                                                        soft_colors,
                                                        image_size, near, far, eps,
-                                                       sigma_val, self.func_dist_type, self.dist_eps,
-                                                       gamma_val, self.func_rgb_type, self.func_alpha_type,
-                                                       self.texture_type, int(fill_back))
+                                                       sigma_val, func_dist_type, dist_eps,
+                                                       gamma_val, func_rgb_type, func_alpha_type,
+                                                       texture_type, int(fill_back))
 
         self.save_vars = face_vertices, textures, soft_colors, faces_info, aggrs_info
         return soft_colors

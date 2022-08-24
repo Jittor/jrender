@@ -35,5 +35,5 @@ def look(vertices, eye, direction=[0, 1, 0], up=None):
     if vertices.shape != eye.shape:
         eye = eye.unsqueeze(1)
     vertices = vertices - eye
-    vertices = jt.matmul(vertices, r.transpose(0,2,1))
+    vertices = jt.matmul(vertices.unsqueeze(2), r.transpose(0,2,1)).squeeze(2)
     return vertices

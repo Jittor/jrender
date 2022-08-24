@@ -35,5 +35,5 @@ def look_at(vertices, eye, at=[0, 0, 0], up=[0, 1, 0]):
         eye = eye.unsqueeze(1)
     vertices = vertices - eye
 
-    vertices = jt.matmul(vertices, r.transpose(0,2,1))
+    vertices = jt.matmul(vertices.unsqueeze(2), r.transpose(0,2,1)).squeeze(2)
     return vertices

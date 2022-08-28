@@ -93,9 +93,10 @@ class obj():
 
 
 class Light():
-    def __init__(self, position=[0, 0, 0], direction=[0, 0, 1], color=[1, 1, 1], intensity=0.5, type="directional"):
+    def __init__(self, position=[0, 0, 0], direction=[0, 0, 1], color=[1, 1, 1], up=[0,1,0],intensity=0.5, type="directional"):
         self.position = position
         self.direction = direction
+        self.up = up
         self.color = jt.normalize(jt.array(color, "float32"), dim=0)
         self.intensity = intensity
         self.type = type
@@ -110,6 +111,7 @@ class Scene():
         self.render = render
         self._name_dic = {}
         self.name_dic_update = True
+        self.render_target = [i for i in range(len(objects))]
 
     def set_obj(self):
         self.MRT_update = False
@@ -118,6 +120,13 @@ class Scene():
     def set_render(self, render):
         self.render = render
 
+    def set_render_target(self,index):
+        if isinstance(index,list):
+            self.render_target = index
+        else:
+            self.render_target = [index]
+        return
+
     @property
     def name_dic(self):
         if self.name_dic_update:
@@ -125,7 +134,7 @@ class Scene():
             for i, obj in enumerate(self.objects):
                 self._name_dic[obj.material_name] = i
         self.name_dic_update = False
-        return self._name_dic
+        return self._name_dic  
 
     @property
     def MRT(self):
@@ -136,7 +145,8 @@ class Scene():
             obj_mark = jt.array([])
             KD = jt.array([])
             name_dic = self.name_dic
-            for i, obj in enumerate(self.objects):
+            for i in self.render_target:
+                obj = self.objects[i]
                 face_vertices = obj.face_vertices
                 obj_mark = jt.concat([obj_mark, jt.ones_like(face_vertices)*i], dim=0)
                 worldcoords = jt.concat([worldcoords, face_vertices], dim=0)
@@ -152,8 +162,12 @@ class Scene():
 
         return self._MRT
 
-    def append_light(self,light):
-        self.lights.append(light)
+    def append_light(self,lights):
+        if isinstance(lights,list):
+            for light in lights:
+                self.lights.append(light)
+        else:
+            self.lights.append(light)
         return
 
     def deferred_render(self):

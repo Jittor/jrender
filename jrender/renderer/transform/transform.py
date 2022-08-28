@@ -56,7 +56,7 @@ class LookAt(nn.Module):
 
 
 class Look(nn.Module):
-    def __init__(self, camera_direction=[0, 0, 1], perspective=True, viewing_angle=30, viewing_scale=1.0, eye=None):
+    def __init__(self, camera_direction=[0, 0, 1], perspective=True, viewing_angle=30, viewing_scale=1.0, eye=None, up=[0,1,0]):
         super(Look, self).__init__()
 
         self.perspective = perspective
@@ -64,12 +64,13 @@ class Look(nn.Module):
         self.viewing_scale = viewing_scale
         self._eye = eye
         self.camera_direction = camera_direction
+        self.up = up
 
         if self._eye is None:
             self._eye = [0, 0, -(1. / math.tan(math.radians(self.viewing_angle)) + 1)]
 
     def execute(self, vertices):
-        vertices = look(vertices, self._eye, self.camera_direction)
+        vertices = look(vertices, self._eye, self.camera_direction, up=self.up)
         # perspective transformation
         if self.perspective:
             vertices = perspective(vertices, angle=self.viewing_angle)
@@ -81,14 +82,14 @@ class Look(nn.Module):
 class Transform(nn.Module):
     def __init__(self, camera_mode='projection', K=None, R=None, t=None, dist_coeffs=None, orig_size=512,
                  perspective=True, viewing_angle=30, viewing_scale=1.0,
-                 eye=None, camera_direction=[0, 0, 1]):
+                 eye=None, camera_direction=[0, 0, 1], up=[0,1,0]):
         super(Transform, self).__init__()
 
         self.camera_mode = camera_mode
         if self.camera_mode == 'projection':
             self.transformer = Projection(K, R, t, dist_coeffs, orig_size)
         elif self.camera_mode == 'look':
-            self.transformer = Look(camera_direction, perspective, viewing_angle, viewing_scale, eye)
+            self.transformer = Look(camera_direction, perspective, viewing_angle, viewing_scale, eye, up)
         elif self.camera_mode == 'look_at':
             self.transformer = LookAt(perspective, viewing_angle, viewing_scale, eye)
         else:
@@ -97,6 +98,7 @@ class Transform(nn.Module):
         self.eye = eye
         self.camera_direction = camera_direction
         self.viewing_angle = viewing_angle
+        self.up=up
 
     def execute(self, mesh):
         mesh.vertices = self.transformer(mesh.vertices)
@@ -120,7 +122,7 @@ class Transform(nn.Module):
         if self.camera_mode == 'look_at':
             vertices = look_at(vertices, self.eye)
         elif self.camera_mode == 'look':
-            vertices = look(vertices, self.eye, self.camera_direction)
+            vertices = look(vertices, self.eye, self.camera_direction,up=self.up)
         return vertices
 
     def projection_transform(self, vertices):

@@ -19,14 +19,14 @@ def main():
         default=os.path.join(data_dir, 'results/output_render'))
     args = parser.parse_args()
 
-    # load from Wavefront .obj file
-    # create renderer with SoftRas
-    render = Render(image_size=1024,camera_mode="look",eye=[0,1,3],camera_direction=[0,0,-1])
+    render = Render(image_size=1024,camera_mode="look",eye=[0,1.8,3],camera_direction=[0,-0.6,-1],near=0.1,viewing_angle=30)
     scene = Scene.load_scene_from_obj(args.filename_input)
-    light1 = Light(position=[0,1,3],direction=[0,0,-1],type="point")
-    scene.append_light(light1)
+    light1 = Light(position=[-2,4,2],direction=[2,-4, -2],intensity=0.8,type="point")
+    light2 = Light(intensity=0.8,type="ambient")
+    scene.append_light([light1,light2])
     scene.set_render(render)
-    rgb = scene.deferred_render()
+    scene.set_render_target([0,5,6])
+    rgb = scene.deferred_render()[:,::-1,:]
     os.makedirs(args.output_dir, exist_ok=True)
 
     # draw object from different view

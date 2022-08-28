@@ -1,6 +1,9 @@
+from codecs import backslashreplace_errors
 from hmac import trans_36
 import jittor as jt
 from skimage.io import imsave
+import math
+import copy
 
 from .transform.transform import Transform
 from .lighting import *
@@ -10,11 +13,11 @@ from ..structures import *
 
 
 class Render():
-    def __init__(self, image_size=256, background_color=[0, 0, 0], near=1, far=100,
+    def __init__(self, image_size=256, background_color=[0, 0, 0], near=0.1, far=100,
                  camera_mode='look',
                  K=None, R=None, t=None, dist_coeffs=None, orig_size=512,
                  perspective=True, viewing_angle=30, viewing_scale=1.0,
-                 eye=None, camera_direction=[0, 0, 1], threshold=1e-5
+                 eye=None, camera_direction=[0, 0, 1], threshold=1e-5, up=[0, 1, 0]
                  ):
 
         self.transform = Transform(camera_mode,
@@ -23,7 +26,7 @@ class Render():
                                    eye, camera_direction)
 
         self.rasterize = SoftRasterizeFunction(image_size,
-                                               background_color=background_color, near=near, far=far, texture_type="vertex")
+                                               background_color=background_color, near=near, far=far, texture_type="vertex", dist_func="hard", aggr_func_rgb="hard")
 
         self.eye = eye
         self.camera_direction = camera_direction
@@ -31,6 +34,7 @@ class Render():
         self.viewing_scale = viewing_scale
         self.camera_mode = camera_mode
         self.perspective = perspective
+        self.up =up
 
         self.threshold = threshold
         self._world_buffer = None
@@ -44,8 +48,22 @@ class Render():
         self.obj_mark_buffer_update = True
         self.proj_vertices_update = True
         self.MRT = None
+        self._lights = None
+        self.lights_transform = True
 
-    def vp_transform(self, vertices, eye=None, camera_direction=None, viewing_angle=None, viewing_scale=None, camera_mode=None, perspective=None):
+        self.image_size = image_size
+        self.background_color = background_color
+        self.near = near
+        self.far = far
+
+    def view_rotate_m(self):
+        z = jt.normalize(jt.array(self.camera_direction, "float32").unsqueeze(0), eps=1e-5)
+        x = jt.normalize(jt.cross(jt.array(self.up).unsqueeze(0), z), eps=1e-5)
+        y = jt.normalize(jt.cross(z, x), eps=1e-5)
+        rotate = jt.concat([x, y, z], dim=0).transpose()
+        return rotate
+
+    def vp_transform(self, vertices, eye=None, camera_direction=None, viewing_angle=None, viewing_scale=None, camera_mode=None, perspective=None, up=None):
         if len(vertices) == 0:
             return jt.array([])
         if viewing_angle == None:
@@ -60,9 +78,11 @@ class Render():
             perspective = self.perspective
         if viewing_scale == None:
             viewing_scale = self.viewing_scale
-        return Transform(eye=eye, camera_direction=camera_direction, viewing_angle=viewing_angle, viewing_scale=viewing_scale, camera_mode=camera_mode, perspective=perspective).tranpos(vertices)
+        if up == None:
+            up = self.up
+        return Transform(eye=eye, camera_direction=camera_direction, viewing_angle=viewing_angle, viewing_scale=viewing_scale, camera_mode=camera_mode, perspective=perspective, up=up).tranpos(vertices)
 
-    def view_transform(self, vertices, eye=None, camera_direction=None, camera_mode=None):
+    def view_transform(self, vertices, eye=None, camera_direction=None, camera_mode=None, up=None):
         if len(vertices) == 0:
             return jt.array([])
         if eye == None:
@@ -71,20 +91,37 @@ class Render():
             camera_direction = self.camera_direction
         if camera_mode == None:
             camera_mode = self.camera_mode
-        return Transform(eye=eye, camera_direction=camera_direction, camera_mode=camera_mode).view_transform(vertices)
+        if up == None:
+            up = self.up
+        return Transform(eye=eye, camera_direction=camera_direction, camera_mode=camera_mode, up=up).view_transform(vertices)
+
+    def projection_transform(self, vertices, viewing_angle=None):
+        if len(vertices) == 0:
+            return jt.array([])
+        if viewing_angle == None:
+            viewing_angle = self.viewing_angle
+        return Transform(viewing_angle=viewing_angle).projection_transform(vertices)
 
     def Rasterize(self, face_proj, face_info):
         if len(face_info) == 0:
             return jt.array([])
-        image = self.rasterize(face_proj.unsqueeze(0), face_info.unsqueeze(0))
-        image = jt.transpose(image.squeeze(0)[:3, :, :], (1, 2, 0))
+        image = self.rasterize(face_proj.unsqueeze(0), face_info.unsqueeze(0))   
+        image = jt.transpose(image.squeeze(0)[:3, :, :], (1, 2, 0))          
         return image
+
+    def Rasterize_depth(self, face_proj):
+        textures = jt.ones_like(face_proj)
+        rasterize = RasterizeFunction(image=self.image_size,
+                                      background_color=self.background_color, near=self.near, far=self.far, texture_type="vertex", dist_func="hard", aggr_func_rgb="none")
+        rasterize(face_proj.unsqueeze(0), textures.unsqueeze(0))
+        return rasterize.save_vars[4][:, 0, :, :].squeeze(0)
 
     def vertex_shader():
         return
 
     def fragment_shader(self, MRT, objects, lights):
         self.MRT = MRT
+        self._lights = copy.deepcopy(lights)
         shadow_maps = self.SM(MRT, lights)
 
         worldcoords = self.world_buffer
@@ -93,43 +130,67 @@ class Render():
         obj_mark = self.obj_mark_buffer
         name_dic = self.MRT["name_dic"]
         color = jt.zeros_like(worldcoords)
-        for i, light in enumerate(lights):
-            V = jt.normalize(self.eye-worldcoords)
-            if light.type == "directional":
-                light_color = jt.array(light.color,"float32")
-                light_direction = jt.array(light.direction, "float32")
-                L = -light_direction.unsqueeze(0).unsqueeze(0)
-                proj_to_light_v = self.vp_transform(vertices=worldcoords, eye=light.position,
-                                                    camera_direction=light.direction, perspective="False")
-                eyeDepth = proj_to_light_v[:, :, 2]
-                DepthMapUV = jt.stack([(proj_to_light_v[:, :, 0]+1.)/2, 1-(proj_to_light_v[:, :, 1]+1.)/2], dim=1)
-                LightDepth = sample2D(shadow_maps[i], DepthMapUV)
-                shadow = (eyeDepth - LightDepth) < 0.1
-                shadow = shadow.unsqueeze(2)
+        for i, light in enumerate(self.lights):
 
-            elif light.type == "point":
-                light_color = jt.array(light.color,"float32")
-                L = (jt.array(light.position, "float32")-worldcoords)
-                proj_to_light_v = self.vp_transform(
-                    vertices=worldcoords, eye=light.position, camera_direction=light.direction)
-                eyeDepth = proj_to_light_v[:, :, 2]
-                DepthMapUV = jt.concat([(proj_to_light_v[:, :, 0]+1.)/2, 1-(proj_to_light_v[:, :, 1]+1.)/2], dim=2)
-                LightDepth = sample2D(shadow_maps[i], DepthMapUV)
-                shadow = (eyeDepth - LightDepth) < 0.1
-                shadow = shadow.unsqueeze(2)
-
-            elif light.type == "ambient":
+            if light.type == "ambient":
                 color += light.intensity * light.color.unsqueeze(0).unsqueeze(0)
                 continue
 
+            V = jt.normalize(self.eye-worldcoords)
+            if light.type == "directional":
+                light_color = jt.array(light.color, "float32")
+                L = -jt.normalize(jt.array(light.direction, "float32")).unsqueeze(0)
+                proj_to_light_v = self.vp_transform(vertices=worldcoords, eye=light.position,
+                                                    camera_direction=light.direction, viewing_scale=shadow_maps[i][1], perspective=False, camera_mode="look", up=light.up)
+                eyeDepth = proj_to_light_v[:, :, 2]
+                DepthMapUV = jt.stack([(proj_to_light_v[:, :, 0]+1.)/2, 1-(proj_to_light_v[:, :, 1]+1.)/2], dim=2)
+                LightDepth = sample2D(shadow_maps[i][0], DepthMapUV)
+
+                shading = (eyeDepth - LightDepth) < 0.05
+                shading = shading.unsqueeze(2)
+
+            elif light.type == "point":
+                light_color = jt.array(light.color, "float32")
+                L = jt.normalize((jt.array(light.position, "float32")-worldcoords), dim=2)
+                proj_to_light_v = self.vp_transform(
+                    vertices=worldcoords, eye=light.position, camera_direction=light.direction, viewing_angle=shadow_maps[i][1], perspective=True, camera_mode="look", up=light.up)
+                eyeDepth = proj_to_light_v[:, :, 2]
+                DepthMapUV = jt.stack([(proj_to_light_v[:, :, 0]+1.)/2, 1-(proj_to_light_v[:, :, 1]+1.)/2], dim=2)
+                LightDepth = sample2D(shadow_maps[i][0], DepthMapUV, default=self.far+1)
+
+                
+                """ c = eyeDepth.copy()
+                a = LightDepth.copy()
+                a[a > self.far] = 0
+                #c[c > self.far] = 0
+                #c[c < self.near] = 0
+                c = jt.clamp(c, 0, 10.36)
+                uv = jt.concat([DepthMapUV, jt.ones_like(eyeDepth.unsqueeze(2))], dim=2)
+                uv = jt.clamp(uv, 0, 1)
+                imsave("D:\Render\jrender\data\\results\\temp\\eyeDepth.jpg", c)
+                imsave("D:\Render\jrender\data\\results\\temp\\LightDepth.jpg", a)
+                imsave("D:\Render\jrender\data\\results\\temp\\DepthMapUV.jpg", uv)
+                imsave("D:\Render\jrender\data\\results\\temp\\worldcoods.jpg",worldcoords) """
+                shading = eyeDepth-LightDepth < 0.05
+
+                #imsave("D:\Render\jrender\data\\results\\temp\\shading.jpg", jt.clamp(eyeDepth - LightDepth, 0, 1))
+                # exit()
+
+                shading = shading.unsqueeze(2)
+
+
             H = jt.normalize(V + L, dim=2)
             cosine = nn.relu(jt.sum(L * N, dim=2)).unsqueeze(2)
-            diffuse = light.intensity * light_color.unsqueeze(0).unsqueeze(0) * cosine * (1-shadow)
-            specular = jt.pow(nn.relu(jt.sum(H*N, dim=2)), 10).unsqueeze(2) * light_color.unsqueeze(0).unsqueeze(0) * (1-shadow)
+            diffuse = light.intensity * light_color.unsqueeze(0).unsqueeze(0) * cosine * shading
+            specular = jt.pow(nn.relu(jt.sum(H * N, dim=2)), 10).unsqueeze(2) * \
+                light_color.unsqueeze(0).unsqueeze(0) * shading
+
+            imsave("D:\Render\jrender\data\\results\\temp\\kd.jpg",KD) 
 
             color += diffuse + specular
 
         color *= KD
+        color = jt.clamp(color,0,1)
 
         return color
 
@@ -140,20 +201,29 @@ class Render():
             if light.type == "point":
                 eye = light.position
                 direction = light.direction
+                viewing_angle = 45
                 proj_vertices = self.vp_transform(vertices=face_vertices, eye=eye,
-                                                  camera_direction=direction, camera_mode="look", perspective=True)
-                depth_map.append(self.Rasterize(proj_vertices, proj_vertices)[:, :, 2])
-                
-                a=(self.Rasterize(proj_vertices, proj_vertices)[:, :, 2]-2)/2.1
-                a=(255*a.numpy()).astype(np.uint8)
-                imsave("D:\Render\jrender\data\\results\output_render\\test.jpg",a)
-                exit()
+                                                  camera_direction=direction, viewing_angle=viewing_angle, camera_mode="look", perspective=True, up=light.up)
+                self.Rasterize(proj_vertices, proj_vertices)
+                depth_map.append([self.rasterize.save_vars[4][:, 0, :, :].squeeze(0), viewing_angle])
+
+                temp = self.rasterize.save_vars[4][:, 0, :, :].squeeze(0).copy()
+                temp[temp == 10000000] = 0
+                imsave("D:\Render\jrender\data\\results\\temp\\shadow_map.jpg", temp[:,::-1]) 
+
             elif light.type == "directional":
                 direction = light.direction
                 eye = light.position
+                viewing_scale = 0.9
                 proj_vertices = self.vp_transform(vertices=face_vertices, eye=eye,
-                                                  camera_direction=direction, viewing_scale=0.8, camera_mode="look", perspective=False)
-                depth_map.append(self.Rasterize(proj_vertices, proj_vertices)[:, :, 2])
+                                                  camera_direction=direction, viewing_scale=viewing_scale, camera_mode="look", perspective=False, up=light.up)
+                depth_map.append([self.Rasterize(proj_vertices, proj_vertices)[:, :, 2], viewing_scale])
+
+                temp = self.Rasterize(proj_vertices, proj_vertices)[:, :, 2]
+                imsave("D:\Render\jrender\data\\results\\temp\\shadow_map.jpg", temp[:,::-1,:])
+
+
+
         return depth_map
 
     def set_view(self, eye, camera_direction):
@@ -170,24 +240,39 @@ class Render():
     def proj_vertices(self):
         if self.proj_vertices_update == True or self.MRT["render_update"][0] == True:
             self._proj_vertices = self.MRT.get("worldcoords")
+            self._proj_vertices = self.vp_transform(self._proj_vertices)
         self.proj_vertices_update = False
-        self.MRT["render_update"][0] == False
+        self.MRT["render_update"][0] = False
         return self._proj_vertices
 
     @property
     def world_buffer(self):
         if self.world_buffer_update == True or self.MRT["render_update"][1] == True:
-            face_vertices = self.MRT.get("worldcoords")
-            self._world_buffer = self.Rasterize(
-                self.proj_vertices, face_vertices)
+            face_normals = jt.matmul(self.MRT.get("normals").unsqueeze(2), self.view_rotate_m()).squeeze(2)
+            self._normal_buffer = self.Rasterize(
+                self.proj_vertices, face_normals)
+            aggrs_info = self.rasterize.save_vars[4]
+
+            #alpha = aggrs_info[:, 1, :, :].squeeze(0) == -1
+            z = aggrs_info[:, 0, :, :].squeeze(0)
+            #z[alpha] = 0            
+
+            image_size = self.rasterize.image_size
+            x = jt.repeat((2*jt.arange(0, image_size)+1)/image_size-1, [image_size, 1])
+            y = x[::, ::-1].transpose()
+            width = math.tan(self.viewing_angle/180.*math.pi)
+            self._world_buffer = jt.stack([x*z*width, y*z*width, z], dim=2)
+
+        self.normal_buffer_update = False
         self.world_buffer_update = False
         self.MRT["render_update"][1] = False
+        self.MRT["render_update"][2] = False
         return self._world_buffer
 
     @property
     def normal_buffer(self):
         if self.normal_buffer_update == True or self.MRT["render_update"][2] == True:
-            face_normals = self.MRT.get("normals")
+            face_normals = jt.matmul(self.MRT.get("normals").unsqueeze(2), self.view_rotate_m()).squeeze(2)
             self._normal_buffer = self.Rasterize(
                 self.proj_vertices, face_normals)
         self.normal_buffer_update = False
@@ -214,6 +299,21 @@ class Render():
         self.obj_mark_buffer_update = False
         self.MRT["render_update"][4] = False
         return self._obj_mark_buffer
+
+    @property
+    def lights(self):
+        if self.lights_transform == True:
+            for light in self._lights:
+
+                light.direction = jt.matmul(jt.array(light.direction).unsqueeze(0),
+                                            self.view_rotate_m()).numpy().tolist()
+                light.position = jt.matmul(jt.array(light.position).unsqueeze(
+                    0)-jt.array(self.eye).unsqueeze(0), self.view_rotate_m()).numpy().tolist()
+                light.up = jt.matmul(jt.array(light.up).unsqueeze(0),
+                                     self.view_rotate_m()).numpy().tolist()
+
+        self.lights_transform = False
+        return self._lights
 
 
 def sample2D(texture, pos, default=999999):  # 超出查找范围的值为999999  pos [0,1]*[0,1]
@@ -276,13 +376,13 @@ def sample2D(texture, pos, default=999999):  # 超出查找范围的值为999999
         const int pos_xi = round(pos_x);
         const int pos_yi = round(pos_y);
         for (int k = 0; k < dimension; k++) {
-            valuen[k] = image[(pos_yi * image_width + pos_xi) * 3 + k];
+            valuen[k] = image[(pos_yi * image_width + pos_xi) * dimension + k];
         }
     }
     }
     }
     ''',
-    cuda_src=f'''
+                   cuda_src=f'''
     @alias(texture, in0)
     @alias(pos, in1)
     @alias(value, out0)
@@ -291,7 +391,7 @@ def sample2D(texture, pos, default=999999):  # 超出查找范围的值为999999
     const auto image_width = texture_shape1;
     
     const int threads = 1024;
-    const dim3 blocks ((value_size / 3 - 1) / threads + 1);
+    const dim3 blocks ((value_size / {dimension} - 1) / threads + 1);
 
     sample2D_cuda_kernel<float32><<<blocks, threads>>>(
         texture_p,

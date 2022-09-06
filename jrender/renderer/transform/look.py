@@ -1,6 +1,6 @@
 import jittor as jt
 
-def look(vertices, eye, direction=[0, 1, 0], up=None):
+def look(vertices, eye, direction=[0, 1, 0], up=None, coordinate ="right"):
     """
     "Look" transformation of vertices.
     """
@@ -32,8 +32,12 @@ def look(vertices, eye, direction=[0, 1, 0], up=None):
     if jt.abs(jt.sum(up * z_axis)) > 1-1e-4:
         raise ValueError("camera_direction and camera_up can not be the same")
 
-    x_axis = jt.normalize(jt.cross(up, z_axis), eps=1e-5)
-    y_axis = jt.normalize(jt.cross(z_axis, x_axis), eps=1e-5)
+    if coordinate == "right":
+        x_axis = jt.normalize(jt.cross(up, z_axis), eps=1e-5)
+        y_axis = jt.normalize(jt.cross(z_axis, x_axis), eps=1e-5)
+    elif coordinate =="left":
+        x_axis = jt.normalize(jt.cross(z_axis,up), eps=1e-5)
+        y_axis = jt.normalize(jt.cross(x_axis, z_axis), eps=1e-5)
 
     # create rotation matrix: [bs, 3, 3]
     r = jt.contrib.concat((x_axis.unsqueeze(1), y_axis.unsqueeze(1), z_axis.unsqueeze(1)), dim=1)

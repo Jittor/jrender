@@ -8,7 +8,7 @@ class obj():
     def __init__(self, Ka, Kd, Ke, Ns, Ni,
                  face_vertices, face_normals, face_texcoords,
                  material_name,
-                 refection_type="diffuse",
+                 reflection_type="diffuse",
                  map_Kd_path=None, map_normal_path=None, obj_path=None, mtl_path=None):
         self.material_name = material_name
         self.Ka = Ka
@@ -16,7 +16,7 @@ class obj():
         self.Ke = Ke
         self.Ns = Ns
         self.Ni = Ni
-        self.reflection_type = refection_type
+        self.reflection_type = reflection_type
 
         self.map_Kd_path = map_Kd_path
         self.map_normal_path = map_normal_path
@@ -93,7 +93,7 @@ class obj():
 
 
 class Light():
-    def __init__(self, position=[0, 0, 0], direction=[0, 0, 1], color=[1, 1, 1], up=[0,1,0],intensity=0.5, type="directional"):
+    def __init__(self, position=[0, 0, 0], direction=[0, 0, 1], color=[1, 1, 1], up=[0, 1, 0], intensity=0.5, type="directional"):
         self.position = position
         self.direction = direction
         self.up = up
@@ -120,11 +120,15 @@ class Scene():
     def set_render(self, render):
         self.render = render
 
-    def set_render_target(self,index):
-        if isinstance(index,list):
+    def set_render_target(self, index):
+        if isinstance(index, list):
             self.render_target = index
         else:
             self.render_target = [index]
+        return
+
+    def set_reflection(self, ind, type):
+        self.objects[ind].reflection_type = type
         return
 
     @property
@@ -133,8 +137,8 @@ class Scene():
             self._name_dic = {}
             for i, obj in enumerate(self.objects):
                 self._name_dic[obj.material_name] = i
-        self.name_dic_update = False
-        return self._name_dic  
+            self.name_dic_update = False
+        return self._name_dic
 
     @property
     def MRT(self):
@@ -142,13 +146,19 @@ class Scene():
             worldcoords = jt.array([])
             normals = jt.array([])
             texcoords = jt.array([])
-            obj_mark = jt.array([])
+            obj_faces = {}
             KD = jt.array([])
+            objects = []
             name_dic = self.name_dic
+            nf = 0
             for i in self.render_target:
+
                 obj = self.objects[i]
+                objects.append(obj)
                 face_vertices = obj.face_vertices
-                obj_mark = jt.concat([obj_mark, jt.ones_like(face_vertices)*i], dim=0)
+                obj_faces.update({f"{i}": [nf, nf + face_vertices.shape[0]]})
+                nf += face_vertices.shape[0]
+
                 worldcoords = jt.concat([worldcoords, face_vertices], dim=0)
                 normals = jt.concat([normals, obj.face_normals], dim=0)
                 if obj.face_texcoords.numel() == 0:
@@ -157,13 +167,15 @@ class Scene():
                     kd = jt.concat([texcoords, sample2D(obj.textures, obj.face_texcoords)], dim=0)
                 KD = jt.concat([KD, kd], dim=0)
             self._MRT = {"worldcoords": worldcoords, "normals": normals,
-                         "KD": KD, "obj_mark": obj_mark, "name_dic": name_dic, "render_update": [True, True, True, True, True]}
+                         "KD": KD, "obj_faces": obj_faces, "name_dic": name_dic,
+                         "render_update": [True, True, True, True, True], "objs": objects,
+                         "lights": self.lights}
         self.MRT_update = False
 
         return self._MRT
 
-    def append_light(self,lights):
-        if isinstance(lights,list):
+    def append_light(self, lights):
+        if isinstance(lights, list):
             for light in lights:
                 self.lights.append(light)
         else:
@@ -171,7 +183,7 @@ class Scene():
         return
 
     def deferred_render(self):
-        image = self.render.fragment_shader(self.MRT, self.objects, self.lights)
+        image = self.render.fragment_shader(self.MRT)
 
         return image
 
@@ -206,10 +218,10 @@ def load_obj(filename):
     material_name = ""
     length = len(lines)
     for i, line in enumerate(lines):
-        if len(line.split()) == 0 :
-            if i == length - 1 :
-                line = "usemtl end" 
-            else :
+        if len(line.split()) == 0:
+            if i == length - 1:
+                line = "usemtl end"
+            else:
                 continue
         if line.split()[0] == 'v':
             vertices.append([float(v) for v in line.split()[1:4]])
@@ -267,9 +279,9 @@ def load_obj(filename):
                     if material_name not in obj_group.keys():
                         next = 1
                         continue
-                    else :
+                    else:
                         next = 0
-                if next :
+                if next:
                     continue
                 if line.split()[0] == 'map_Kd':
                     obj_group[material_name].update({"map_Kd": line.split()[1]})

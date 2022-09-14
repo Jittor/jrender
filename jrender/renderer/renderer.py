@@ -44,6 +44,12 @@ class Renderer(nn.Module):
                                             texture_type)
         elif dr_type == 'n3mr':
             self.rasterizer = N3mrRasterizer(image_size, anti_aliasing, background_color, fill_back)
+        elif dr_type=="DrL":
+            self.rasterizer = DrL_Rasterizer(image_size, background_color, near, far, 
+                                            anti_aliasing, fill_back, eps,
+                                            sigma_val, dist_func, dist_eps,
+                                            gamma_val, aggr_func_rgb, aggr_func_alpha,
+                                            texture_type)
         else:
             raise ValueError("dr_type should be one of None, 'softras' or 'n3mr'")
 

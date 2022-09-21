@@ -79,7 +79,7 @@ class Mesh(object):
 
         self._fill_back = False
         self.dr_type = dr_type
-        
+
         if texture_type == 'surface':
             if self.dr_type == 'softras':
                 self._metallic_textures = jt.zeros((self.batch_size, self.num_faces, texture_res**2, 1))
@@ -283,7 +283,8 @@ class Mesh(object):
         Create a Mesh object from a .obj file
         '''
         if load_texture:
-            vertices, faces, textures ,normal_textures,TBN , face_texcoords= load_obj(filename_obj,
+            if dr_type == 'softras':
+                vertices, faces, textures ,normal_textures,TBN , face_texcoords= load_obj(filename_obj,
                                                         normalization=normalization,
                                                         texture_res=texture_res,
                                                         load_texture=True,
@@ -291,6 +292,18 @@ class Mesh(object):
                                                         texture_type=texture_type,
                                                         texture_wrapping=texture_wrapping, 
                                                         use_bilinear=use_bilinear)
+            else:
+                vertices, faces, textures = load_obj(filename_obj,
+                                                        normalization=normalization,
+                                                        texture_res=texture_res,
+                                                        load_texture=True,
+                                                        dr_type=dr_type,
+                                                        texture_type=texture_type,
+                                                        texture_wrapping=texture_wrapping, 
+                                                        use_bilinear=use_bilinear)
+                normal_textures= None
+                TBN = None
+                face_texcoords = None
         else:
             vertices, faces = load_obj(filename_obj,
                                     normalization=normalization,
@@ -299,6 +312,7 @@ class Mesh(object):
             textures = None
             normal_textures= None
             TBN = None
+            face_texcoords= None
         return cls(vertices, faces, textures, texture_res, texture_type, dr_type=dr_type,normal_textures=normal_textures,TBN=TBN,with_SSS=with_SSS,face_texcoords=face_texcoords)
 
     def save_obj(self, filename_obj, save_texture=False, texture_res_out=16):

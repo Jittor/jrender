@@ -9,7 +9,8 @@ def voxelize_sub1(faces, voxels):
 #include <stdio.h>
 
 // for the older gpus atomicAdd with double arguments does not exist
-#if  __CUDA_ARCH__ < 600 and defined(__CUDA_ARCH__)
+#ifndef _WIN32
+#if  __CUDA_ARCH__ < 600
 static __inline__ __device__ double atomicAdd(double* address, double val) {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -22,6 +23,7 @@ static __inline__ __device__ double atomicAdd(double* address, double val) {
     return __longlong_as_double(old);
 }
 #endif
+#endif 
 
 namespace{
 
@@ -115,7 +117,8 @@ def voxelize_sub2(faces, voxels):
 #include <stdio.h>
 
 // for the older gpus atomicAdd with double arguments does not exist
-#if  __CUDA_ARCH__ < 600 and defined(__CUDA_ARCH__)
+#ifndef _WIN32
+#if  __CUDA_ARCH__ < 600
 static __inline__ __device__ double atomicAdd(double* address, double val) {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -127,6 +130,7 @@ static __inline__ __device__ double atomicAdd(double* address, double val) {
     } while (assumed != old);
     return __longlong_as_double(old);
 }
+#endif
 #endif
 
 namespace{
@@ -191,7 +195,8 @@ def voxelize_sub3(faces, voxels, visible):
 #include <stdio.h>
 
 // for the older gpus atomicAdd with double arguments does not exist
-#if  __CUDA_ARCH__ < 600 and defined(__CUDA_ARCH__)
+#ifndef _WIN32
+#if  __CUDA_ARCH__ < 600
 static __inline__ __device__ double atomicAdd(double* address, double val) {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -203,6 +208,7 @@ static __inline__ __device__ double atomicAdd(double* address, double val) {
     } while (assumed != old);
     return __longlong_as_double(old);
 }
+#endif
 #endif
 
 namespace{
@@ -260,7 +266,8 @@ def voxelize_sub4(faces, voxels, visible):
 #include <stdio.h>
 
 // for the older gpus atomicAdd with double arguments does not exist
-#if  __CUDA_ARCH__ < 600 and defined(__CUDA_ARCH__)
+#ifndef _WIN32
+#if  __CUDA_ARCH__ < 600
 static __inline__ __device__ double atomicAdd(double* address, double val) {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -272,6 +279,7 @@ static __inline__ __device__ double atomicAdd(double* address, double val) {
     } while (assumed != old);
     return __longlong_as_double(old);
 }
+#endif
 #endif
 
 namespace{

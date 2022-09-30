@@ -485,7 +485,8 @@ def backward_soft_rasterize(faces, textures, soft_colors,
 #include <cuda_runtime.h>
 
 // for the older gpus atomicAdd with double arguments does not exist
-#if  __CUDA_ARCH__ < 600 and defined(__CUDA_ARCH__)
+#ifndef _WIN32
+#if  __CUDA_ARCH__ < 600
 static __inline__ __device__ double atomicAdd(double* address, double val) {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -498,7 +499,7 @@ static __inline__ __device__ double atomicAdd(double* address, double val) {
     return __longlong_as_double(old);
 }
 #endif
-
+#endif
 
 namespace{
 

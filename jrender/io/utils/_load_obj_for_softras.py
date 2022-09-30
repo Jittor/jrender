@@ -3,8 +3,8 @@ from cv2 import imwrite
 import jittor as jt
 import numpy as np
 from skimage.io import imread
-from jrender.structures.utils import faces_vertices
 from .load_textures import _load_textures_for_softras
+from ...Scene.objects.utils.create_TBN import *
 
 def bump_mapToNormal_map(bump_image):
 
@@ -125,25 +125,7 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
             imwrite(filename_bumpToNormal,np.array(image[:,:,::-1])*255.)
 
         #create TBN
-        e1=face_vertices[::,0]-face_vertices[::,1]
-        e2=face_vertices[::,0]-face_vertices[::,2]
-        n=jt.normalize(jt.cross(e1,e2).unsqueeze(1),dim=2)
-        u1=(faces[::,0,0]-faces[::,1,0])
-        v1=(faces[::,0,1]-faces[::,1,1])
-        u2=(faces[::,0,0]-faces[::,2,0])
-        v2=(faces[::,0,1]-faces[::,2,1])
-        denom=jt.array(1/(u1*v2-u2*v1)).float32().unsqueeze(1).unsqueeze(2)
-        inverse=jt.array(np.stack((np.stack((v2,-v1),axis=1),np.stack((-u2,u1),axis=1)),axis=1)).float32()
-        e=jt.array(np.stack((e1,e2),axis=1)).float32()
-        TB=jt.matmul(inverse,e)
-        TB=denom*TB
-        T=TB[::,0,::]
-        T=T.unsqueeze(1)
-        T_n=jt.sum(T*n,dim=2).unsqueeze(1)
-        T=T-(T_n*n)
-        T=jt.normalize(T,dim=2)
-        B=jt.normalize(jt.cross(n,T),dim=2)
-        TBN=jt.concat([T,B,n],dim=1)
+        TBN = create_TBN(face_texcoords=faces,face_wcoords=face_vertices)
 
         is_update=jt.ones(len(material_names)).int()
         image = image[::-1, :, :]

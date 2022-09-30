@@ -98,10 +98,8 @@ def SSS(diffuseLight, specular, mesh):
         (coords.shape[0], coords.shape[1], coords.shape[2], 1), 1.5)], dim=3)
     Worldcoord_Map = rasterize(coords, worldcoord_textures)
     Worldcoord_Map = jt.transpose(Worldcoord_Map.squeeze(0)[:3, :, :], (1, 2, 0))
-    rasterize.texture_type = 'surface'
     irradiance_Map = rasterize(coords, irradiance)
     irradiance_Map = jt.transpose(irradiance_Map.squeeze(0)[:3, :, :], (1, 2, 0))
-    rasterize.texture_type = 'surface'
     specular_Map = rasterize(coords, specular)
     specular_Map = jt.transpose(specular_Map.squeeze(0)[:3, :, :], (1, 2, 0))
 

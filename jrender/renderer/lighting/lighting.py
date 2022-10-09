@@ -83,7 +83,7 @@ class DirectionalLighting(nn.Module):
 def SSS(diffuseLight, specular, mesh):
     irradiance = (mesh.textures*diffuseLight).sqrt()
     #rasterize to texture_space
-    image_size=1024
+    image_size=2048
     rasterize = SoftRasterizeFunction(image_size=image_size,
                                       background_color=[0, 0, 0], near=1, far=100,
                                       fill_back=True, eps=1e-5,
@@ -110,7 +110,7 @@ def SSS(diffuseLight, specular, mesh):
  
     #rgb blur    
 
-    Gaussian_basis = [0,16,64,256]
+    Gaussian_basis = [0,25,100,400]
 
     diffuse_sqrt=irradiance_Map.clone()
     final_map = jt.zeros_like(irradiance_Map)
@@ -120,9 +120,9 @@ def SSS(diffuseLight, specular, mesh):
     irradiance_Map_G=irradiance_Map[:,:,1]
     irradiance_Map_B=irradiance_Map[:,:,2]
 
-    Gaussian_weight_r = [0.2,0.3,0.5]
-    Gaussian_weight_g = [0.5,0.4,0.1]
-    Gaussian_weight_b = [0.6,0.4,0.0]
+    Gaussian_weight_r = [0.6,0.3,0.1]
+    Gaussian_weight_g = [0.2,0.3,0.5]
+    Gaussian_weight_b = [0.2,0.3,0.5]
     Gaussian_weight = [Gaussian_weight_r,Gaussian_weight_g,Gaussian_weight_b]
 
     irradiance_rgb=[]

@@ -187,6 +187,9 @@ def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=
             if line.split()[0] == 'v':
                 textures.append([float(v) for v in line.split()[4:7]])
         textures = jt.array(np.vstack(textures)).float()
+        normal_textures = None
+        TBN = None
+        face_texcoords = None
     # normalize into a unit cube centered zero
     if normalization:
         vertices -= vertices.min(0)

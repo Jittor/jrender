@@ -171,7 +171,7 @@ __device__ __forceinline__ void Uniform_sampler(curandStateXORWOW_t* state, floa
 __device__ __forceinline__ void Cone_sampler(curandStateXORWOW_t* state, float3& H, float& pdf) {
     float ksi1 = curand_uniform(state);
     float ksi2 = curand_uniform(state);
-    float k = 0.15;            // k = 1- cos2Theta_max
+    float k = 0.3;            // k = 1- cos2Theta_max
     float sinTheta = sqrtf(ksi1 * k / 2);
     H = make_float3(sinTheta * cos(2 * pi * ksi2),sqrtf(1 - sinTheta * sinTheta),sinTheta * sin(2 * pi * ksi2));
     pdf = 2 * H.y / (pi * k);
@@ -186,7 +186,7 @@ __device__ __forceinline__ float3& BRDF_withcos(float3 indir, float3 outdir, flo
     float D = GGX(N, H, rough);
     float G = GeometrySmith(NdotV, NdotL, rough);
     float cosTheta = max(dot(H, outdir), 0.);
-    float3 F0 = make_float3(0.89, 0.16, 0.11);
+    float3 F0 = make_float3(0.4, 0.4, 0.4);
     float3 F = fresnel(cosTheta, F0);
 
     return (D * G * F) / (4 * NdotV);
@@ -244,7 +244,8 @@ __global__ void SSSR_cuda_kernel(
     normalize3(outdir);
     float3 normal = make_float3(normals[i * 3 + 0], normals[i * 3 + 1], normals[i * 3 + 2]);
     float rough = roughness[i];
-    scalar_t world_thickness = 0.02;
+    scalar_t world_thickness = 0.05;
+    scalar_t pixel_bias = 0.02;
 
     scalar_t ray_k;
     scalar_t step_x;
@@ -274,12 +275,25 @@ __global__ void SSSR_cuda_kernel(
     B = cross(T,normal);
  
     for (int k = 0; k < spp; k++) {
+        
+        
         float3 H;
         Cone_sampler(&states[i], H, pdf);
         H = H.x * B + H.y * normal + H.z * T;
         normalize3(H);
         indir = 2 * dot(outdir, H) * H - outdir;
-        pdf /= 4 * max(dot(H,outdir),0.01);   
+        pdf /= 4 * max(dot(H,outdir),0.01);
+        
+
+        /*
+        indir = 2 * dot(outdir, normal) * normal - outdir;
+        pdf = 1;
+        */
+
+        /*
+        Uniform_sampler(&states[i], indir , pdf);
+        indir = indir.x * B + indir.y * normal + indir.z * T;
+        */
 
         float3 wcoord0 = wcoord + indir;
         float2 wcoord0_p = make_float2(wcoord0.x / wcoord0.z / width, wcoord0.y / wcoord0.z / width);
@@ -327,14 +341,14 @@ __global__ void SSSR_cuda_kernel(
             k_axis = 0;
         }
 
-        scalar_t ray_x = xp;
-        scalar_t ray_y = is - 1 - yp;
+        double ray_x = xp;
+        double ray_y = is - 1 - yp;
         scalar_t ray_depth = wcoord.z;
         const scalar_t* depth0 = &depth[0];
         int depth_size = is;
         int level = 0;
-        scalar_t next_ray_x;
-        scalar_t next_ray_y;
+        double next_ray_x;
+        double next_ray_y;
         scalar_t z = far + 1;
         int next_hz_xp, next_hz_yp;
         scalar_t numerator = k_axis ? (yi * ray_k - xi) : (xi * ray_k - yi);
@@ -381,7 +395,7 @@ __global__ void SSSR_cuda_kernel(
                     continue;
                 }
                 //draw_point((float*)image,int(next_ray_x),is - int(next_ray_y) - 1,5,is,make_float3(4,4,4.));
-                ind = (depth_size - next_hz_yp) * depth_size + next_hz_xp;
+                ind = (depth_size - next_hz_yp - 1) * depth_size + next_hz_xp;
                 z = depth0[ind];
                 // normalize to [-1 , 1]
                 ray_xi = (2 * next_ray_x + 1 - is) / is;
@@ -390,15 +404,22 @@ __global__ void SSSR_cuda_kernel(
                 denominator = denominator > 0 ? max(denominator, 1e-6) : min(denominator, -1e-6);
                 ray_depth = numerator / denominator;
                 
-                if (ray_depth > z + world_thickness) {
+                if (ray_depth > z + pixel_bias) {
                     if (level <= level_intersect && ray_depth <= far) {
-                        int c_ind = ((is - int(next_ray_y) - 1) * is + int(next_ray_x)) * 3;
-                        hit = 1;
-                        radiance_i = make_float3(colors[c_ind + 0], colors[c_ind + 1], colors[c_ind + 2]);
-                        //image[i * 3 + 0] = 0.5 * colors[i * 3 + 0] + 0.5 * colors[c_ind + 0];
-                        //image[i * 3 + 1] = 0.5 * colors[i * 3 + 1] + 0.5 * colors[c_ind + 1];
-                        //image[i * 3 + 2] = 0.5 * colors[i * 3 + 2] + 0.5 * colors[c_ind + 2];
-                        //return;
+                        if (ray_depth < z + world_thickness){
+                            int c_ind = ((is - int(next_ray_y) - 1) * is + int(next_ray_x)) * 3;
+                            hit = 1;
+                            radiance_i = make_float3(colors[c_ind + 0], colors[c_ind + 1], colors[c_ind + 2]);
+                            int _ind = faces_ind[(is - int(next_ray_y) - 1) * is + int(next_ray_x)];
+                            if (_ind == 4 || _ind == 5 || _ind == 6 || _ind == 7 || _ind == 8 || _ind == 9){
+                                float fade = sqrtf((next_ray_y - (is - 1 - yp)) * (next_ray_y - (is - 1 - yp)) + (next_ray_x - xp) * (next_ray_x - xp)) / 180 + 1;
+                                radiance_i = radiance_i / fade;
+                            }
+                            //image[i * 3 + 0] = 0.5 * colors[i * 3 + 0] + 0.5 * colors[c_ind + 0];
+                            //image[i * 3 + 1] = 0.5 * colors[i * 3 + 1] + 0.5 * colors[c_ind + 1];
+                            //image[i * 3 + 2] = 0.5 * colors[i * 3 + 2] + 0.5 * colors[c_ind + 2];
+                            //return;
+                        }
                         break;
                     }
                     level--;

@@ -4,3 +4,4 @@ from .SSSR_cuda import *
 from .conv import *
 from .SSAO_cuda import *
 from .SSDO_cuda import *
+from .FXAA_cuda import *

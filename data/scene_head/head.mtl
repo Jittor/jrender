@@ -1,0 +1,9 @@
+#
+# Wavefront material file
+# Converted by Meshlab Group
+#
+
+newmtl material_0
+map_Kd lambertian.jpg
+#map_normal 0.001 bump-lowRes.png
+#map_normal 0.02 bump.png

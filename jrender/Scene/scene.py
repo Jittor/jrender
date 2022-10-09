@@ -5,6 +5,8 @@ from .objects import *
 from ..render2 import *
 import os
 
+from jrender.Scene import objects
+
 class Scene():
     objects: List[obj]
     lights: List[Light]
@@ -26,6 +28,13 @@ class Scene():
     def set_render(self, render):
         self.render = render
 
+    def set_kd_res(self,res):
+        for obj in self.objects:
+            obj.kd_res = res
+
+    def set_roughness(self,ind,roughness):
+        self.objects[ind]._roughness = roughness
+
     def set_render_target(self, index):
         if isinstance(index, list):
             self.render_target = index
@@ -36,6 +45,15 @@ class Scene():
     def set_reflection(self, ind, type):
         self.objects[ind].reflection_type = type
         return
+
+    def set_specular(self,ind,with_specular):
+        self.objects[ind].with_specular = with_specular
+
+    def set_GenerateNormal(self,ind,mode):
+        self.objects[ind].Generate_Normals = mode
+
+    def set_rescaling(self,ind,scale):
+        self.objects[ind].rescaling(scale)
 
     @property
     def name_dic(self):
@@ -55,6 +73,7 @@ class Scene():
             Albedo = jt.array([])
             Metallic = jt.array([])
             Roughness = jt.array([])
+            with_specular = jt.array([])
             for i in self.render_target:
                 obj = self.objects[i]
                 face_vertices = obj.face_vertices
@@ -63,8 +82,9 @@ class Scene():
                 Albedo = jt.concat([Albedo, obj.face_albedo], dim=0)
                 Metallic = jt.concat([Metallic, obj.face_metallic], dim=0)
                 Roughness = jt.concat([Roughness, obj.face_roughness], dim=0)
+                with_specular = jt.concat([with_specular, obj.specular], dim=0)
                 KD = jt.concat([KD, obj.face_kd], dim=0)
-            metallic_roughness = jt.concat([Metallic, Roughness], dim=2)
+            metallic_roughness = jt.concat([Metallic, Roughness, with_specular], dim=2)
             self._MRT = MultipleRenderTargets(worldcoords=worldcoords, normals=normals,
                                               KD=KD, albedo=Albedo, metallic_roughness=metallic_roughness)
             self.MRT_update = False
@@ -116,8 +136,9 @@ class Scene():
         objects = []
         if (isinstance(filenames, list)):
             for filename in filenames:
-                new_obj = load_obj(filename)
-                objects += new_obj
+                if filename.split('.')[-1] == 'obj':
+                    new_obj = load_obj(filename)
+                    objects += new_obj
         else:
             objects = load_obj(filenames)
         return cls(objects)
@@ -156,14 +177,15 @@ def load_obj(filename):
         if line.split()[0] == 'f':
             index = line.split()[1:]
             for ind in index:
-                if len(ind.split('/')) >= 2:
-                    world_ind.append(int(ind.split('/')[0]))
+                v = ind.split('/')
+                if len(v) >= 2:
+                    world_ind.append(int(v[0]))
                 else:
                     world_ind.append(int(ind))
-                if len(ind.split('/')) >= 2:
-                    tex_ind.append(int(ind.split('/')[1]))
-                if len(ind.split('/')) == 3:
-                    normal_ind.append(int(ind.split('/')[2]))
+                if len(v) >= 2 and v[1] != '':
+                    tex_ind.append(int(v[1]))
+                if len(v) == 3 and v[2] != '':
+                    normal_ind.append(int(v[2]))
 
         if line.split()[0] == 'usemtl' or i == length - 1:
             next_name = line.split()[1]
@@ -228,7 +250,11 @@ def load_obj(filename):
         face_texcoords = np.array(obj_group[obj_name].get('face_texcoords'))
         face_normals = np.array(obj_group[obj_name].get('face_normals'))
         map_Kd = obj_group[obj_name].get('map_Kd')
+        if map_Kd is not None:
+            map_Kd =  os.path.join(os.path.dirname(filename), map_Kd)
         map_normal = obj_group[obj_name].get('map_normal')
+        if map_normal is not None:
+            map_normal =  os.path.join(os.path.dirname(filename), map_normal)
         Kd = obj_group[obj_name].get('Kd')
         Ka = obj_group[obj_name].get('Ka')
         Ke = obj_group[obj_name].get('Ke')

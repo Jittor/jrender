@@ -1,8 +1,10 @@
+
+from sre_constants import RANGE
 import numpy as np
 import jittor as jt
 from ..textures.texture import Texture
 from .utils import *
-
+from ...io.utils.load_textures import _load_textures_for_softras
 
 class obj():
     def __init__(self, Ka, Kd, Ke, Ns, Ni,
@@ -10,22 +12,31 @@ class obj():
                  material_name,
                  reflection_type="diffuse",
                  map_Kd_path=None, map_normal_path=None, obj_path=None, mtl_path=None,
-                 map_metallic_path=None, map_roughness_path=None, map_albedo_path=None):
+                 map_metallic_path=None, map_roughness_path=None, map_albedo_path=None, kd_res = 0):
         self.material_name = material_name
         self._Ka = Ka
         self._Kd = Kd
         self._Ke = Ke
         self._Ns = Ns
         self._Ni = Ni
+        self._roughness = 1
         self.reflection_type = reflection_type
+        self.with_specular = True
+        self.kd_res = kd_res
 
+        #texture
         self._albedo_textures = None
         self.albedo_textures_update = True
         self._metallic_textures = None
         self.metallic_textures_update = True
         self._roughness_textures = None
         self.roughness_textures_update = True
+        self._kd_textures = None
+        self.kd_textures_update = True
+        self._normal_textures = None
+        self.normal_textures_update = True
 
+        #path
         self.map_Kd_path = map_Kd_path
         self.map_normal_path = map_normal_path
         self.map_albedo_path = map_albedo_path
@@ -34,6 +45,7 @@ class obj():
         self.obj_path = obj_path
         self.mtl_path = mtl_path
 
+        #geometry
         if isinstance(face_vertices, np.ndarray):
             face_vertices = jt.array(face_vertices)
         if isinstance(kd_texture_uv, np.ndarray):
@@ -45,15 +57,13 @@ class obj():
         self._face_normals = None
         self.face_normals_update = True
         self._kd_texture_uv = kd_texture_uv
+        self._face_kd = None
+        self.face_kd_update = True
 
         self._surface_normals = None
         self.surface_normals_update = True
-        self._normal_textures = None
-        self.normal_textures_update = True
-        self._kd_textures = None
-        self.kd_textures_update = True
         self.Generate_Normals = "surface"
-
+        
     @property
     def face_vertices(self):  # [nf,3,3]
         return self._face_vertices
@@ -70,7 +80,7 @@ class obj():
                 TBN = create_TBN(self._kd_texture_uv, self.face_vertices)
                 self._face_normals = jt.matmul(normals.unsqueeze(2), TBN.unsqueeze()).squeeze(2)
             elif self.Generate_Normals == "from_obj":
-                self._face_normals = self.face_normals_from_obj
+                self._face_normals = jt.normalize(self.face_normals_from_obj,dim=2)
             self.face_normals_update = False
         return self._face_normals
 
@@ -116,6 +126,8 @@ class obj():
     def kd_textures(self):
         if self.kd_textures_update:
             self._kd_textures = Texture.from_path(self.map_Kd_path)
+            if self._kd_textures is not None:
+                self._kd_textures.image = self._kd_textures.image[::-1,:,:]
             self.kd_textures_update = False
         return self._kd_textures
 
@@ -138,17 +150,48 @@ class obj():
         if self.roughness_textures is not None:
             return self.roughness_textures.query_uv
         else:
-            return jt.ones((self.face_vertices.shape[0], self.face_vertices.shape[1], 1), "float32") * 0.25
+            return jt.ones((self.face_vertices.shape[0], self.face_vertices.shape[1], 1), "float32") * self._roughness
+
+    @property
+    def specular(self):
+        if self.with_specular is True:
+            return jt.ones((self.face_vertices.shape[0], self.face_vertices.shape[1], 1), "float32")
+        else:
+            return jt.zeros((self.face_vertices.shape[0], self.face_vertices.shape[1], 1), "float32") 
 
     @property
     def face_kd(self):
-        if self.kd_textures is not None:
-            return self.kd_textures.query_uv * jt.array(self._Kd).float32()
-        else:
-            return jt.ones_like(self.face_vertices) * jt.array(self._Kd).float32()
+        if self.face_kd_update:
+            if self.kd_textures is not None:
+                if (self.kd_res == 0):
+                    self.kd_textures.uv = self._kd_texture_uv
+                    self._face_kd = self.kd_textures.query_uv
+                else:
+                    image = self.kd_textures.image
+                    faces = self._kd_texture_uv
+                    textures = jt.ones((self.face_vertices.shape[0],self.kd_res,3),"float32")
+                    is_update = jt.ones((self.face_vertices.shape[0]),"int32")
+                    self._face_kd = _load_textures_for_softras(image, faces, textures, is_update)
+
+
+            else:
+                if (self.kd_res == 0):
+                    self._face_kd = jt.ones_like(self.face_vertices) * jt.array(self._Kd).float32()
+                else:
+                    self._face_kd = jt.ones((self.face_vertices.shape[0],self.kd_res,3),"float32") * jt.array(self._Kd).float32()
+            self.face_kd_update = False
+        return self._face_kd
 
     def set_vertices(self, transform):  # 未考虑非等比缩放   model_transform
         self._face_vertices = transform(self._face_vertices)
         self._face_normals = transform(self._face_normals)
+
+    def rescaling(self,scale):
+        max = jt.max(self.face_vertices,dims=(0,1),keepdims=True)
+        min = jt.min(self.face_vertices,dims=(0,1),keepdims=True)
+        center = (max - min) / 2
+        self._face_vertices = (self.face_vertices - center) / center * scale 
+
+
 
 

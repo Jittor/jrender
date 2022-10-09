@@ -50,8 +50,8 @@ class Texture():  #image:[height,width,(channels)]  uv:[...,2]
 
     @image.setter
     def image(self,image):
+        self._image = image
         if len(image.shape) == 2:
-            self._image = image
             self.channel = 1
         else:
             self._channel = image.shape[2]
@@ -106,6 +106,7 @@ class Texture():  #image:[height,width,(channels)]  uv:[...,2]
         if path is None:
             return None
         image = imread(path).astype(np.float32)/255.
+        image = jt.array(image).float32()
         return cls(image)
 
     @classmethod
@@ -115,10 +116,10 @@ class Texture():  #image:[height,width,(channels)]  uv:[...,2]
         row = jt.zeros([1,width])
         col = jt.zeros([height+1,1])
         SAT = jt.concat([row,image],dim = 0)
-        SAT = jt.concat([col,SAT],dim = 1)
+        SAT = jt.concat([col,SAT],dim = 1).float64()
         SAT = np.array(SAT)
         SAT = generate_SAT_fast(SAT)
-        return jt.array(SAT[1:,1:]).float32()
+        return jt.array(SAT[1:,1:]).float64()
 
 class Sampler():
     def __init__(self,sampler=sample2D):

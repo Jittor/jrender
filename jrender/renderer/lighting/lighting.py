@@ -110,7 +110,7 @@ def SSS(diffuseLight, specular, mesh):
  
     #rgb blur    
 
-    Gaussian_basis = [0,25,100,400]
+    Gaussian_basis = [0,9,25,64]
 
     diffuse_sqrt=irradiance_Map.clone()
     final_map = jt.zeros_like(irradiance_Map)
@@ -121,8 +121,8 @@ def SSS(diffuseLight, specular, mesh):
     irradiance_Map_B=irradiance_Map[:,:,2]
 
     Gaussian_weight_r = [0.6,0.3,0.1]
-    Gaussian_weight_g = [0.2,0.3,0.5]
-    Gaussian_weight_b = [0.2,0.3,0.5]
+    Gaussian_weight_g = [0.4,0.3,0.3]
+    Gaussian_weight_b = [0.4,0.3,0.3]
     Gaussian_weight = [Gaussian_weight_r,Gaussian_weight_g,Gaussian_weight_b]
 
     irradiance_rgb=[]
@@ -146,6 +146,7 @@ def SSS(diffuseLight, specular, mesh):
         
     final_map *= diffuse_sqrt
     final_map += specular_Map
+    final_map = specular_Map
 
     final_map = final_map[::-1,:,:]
     is_update=jt.ones((mesh.faces.shape[1])).int()

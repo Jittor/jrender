@@ -100,7 +100,7 @@ def directional_lighting(diffuseLight, specularLight, normals, light_intensity=0
         #Default Setting
         metallic = metallic_textures
         roughness = roughness_textures
-        F0 = jt.array((0.04, 0.04, 0.04), "float32")
+        F0 = jt.array((0.4, 0.4, 0.4), "float32")
         albedo = jt.array((1.0, 1.0, 1.0), "float32")
         if len(normals.shape)==4:
             F0 = F0.unsqueeze(0).unsqueeze(1).unsqueeze(2) * (1 - metallic) + albedo.unsqueeze(0).unsqueeze(1).unsqueeze(2) * metallic             

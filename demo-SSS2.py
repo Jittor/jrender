@@ -22,12 +22,12 @@ def main():
     azimuth = 45
 
     # load from Wavefront .obj file
-    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=15, texture_type='surface', dr_type='softras',normalization=True,with_SSS = True)
+    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=15, texture_type='surface', dr_type='softras',normalization=True,with_SSS = False)
 
     # create renderer with SoftRas
-    renderer = jr.Renderer(dr_type='softras',image_size=2048,light_intensity_ambient=0.4, light_color_ambient=[1,1,1],
-                 light_intensity_directionals=0.7, light_color_directionals=[1.0,1.0,1.0],
-                 light_directions=[0,0,1],dist_func="barycentric",aggr_func_rgb='hard',camera_mode="look",eye=[-0.8,0.3,1.65],camera_direction=[0.5,-0.1,-1])
+    renderer = jr.Renderer(dr_type='softras',image_size=2048,light_intensity_ambient=0.5, light_color_ambient=[1,1,1],
+                 light_intensity_directionals=1.4, light_color_directionals=[1.0,1.0,1.0],
+                 light_directions=[-0.7,0.1,1],dist_func="barycentric",aggr_func_rgb='hard',camera_mode="look",eye=[-0.8,0.3,1.65],camera_direction=[0.5,-0.1,-1])
     '''
         # create renderer with SoftRas
     renderer = jr.Renderer(dr_type='softras',image_size=2048,light_intensity_ambient=0.4, light_color_ambient=[1,1,1],
@@ -37,7 +37,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     # draw object
-    writer = imageio.get_writer(os.path.join(args.output_dir, 'withSSS2.jpg'))
+    writer = imageio.get_writer(os.path.join(args.output_dir, 'noSSS2.jpg'))
     #renderer.transform.set_eyes_from_angles(camera_distance, elevation, azimuth)
     rgb = renderer.render_mesh(mesh, mode='rgb')
     image = rgb.numpy()[0].transpose((1, 2, 0))

@@ -44,16 +44,14 @@
     - [基础教程5：优化金属度贴图](#基础教程5优化金属度贴图)
     - [基础教程6：优化粗糙度贴图](#基础教程6优化粗糙度贴图)
   - [进阶教程](#进阶教程-1)
-    - [进阶教程1：ShapeNet数据集三维重建](#进阶教程1shapenet数据集三维重建)
-    - [进阶教程2：人脸重建](#进阶教程2人脸重建)
-    - [进阶教程3：NERF](#进阶教程3nerf)
+    - [进阶教程1：人脸重建](#进阶教程1人脸重建)
+    - [进阶教程2：NERF](#进阶教程2nerf)
   - [Citation](#citation)
 
 ## 进阶教程
 
-* [进阶教程1：ShapeNet数据集三维重建](#进阶教程1：ShapeNet数据集三维重建)
-* [进阶教程2：人脸重建](#进阶教程2：人脸重建)
-* [进阶教程3：NERF](#进阶教程3：NERF)
+* [进阶教程1：人脸重建](#进阶教程1：人脸重建)
+* [进阶教程2：NERF](#进阶教程2：NERF)
 
 ## 使用
 
@@ -440,15 +438,11 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 
 ## 进阶教程
 
-### 进阶教程1：ShapeNet数据集三维重建
-
-我们使用JRender对ShapeNet数据集进行了三维重建，模型的训练速度是PyTorch的1.22倍。参见[详细代码](https://github.com/Jittor/shapenet-reconstruction-jittor)。
-
-### 进阶教程2：人脸重建
+### 进阶教程1：人脸重建
 
 我们在JRender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
 
-### 进阶教程3：NERF
+### 进阶教程2：NERF
 
 Jrender 2.0版本新推出了Volume Rendering功能，基于该新特性，我们复现了发表于ECCV 2020的NERF，该论文利用神经辐射场表示场景，对合成场景及真实场景都可恢复到真实感渲染级效果。
 

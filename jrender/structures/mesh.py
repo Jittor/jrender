@@ -205,7 +205,9 @@ class Mesh(object):
             if self.normal_textures is None:
                 v10 = self.face_vertices[:, :, 0] - self.face_vertices[:, :, 1]
                 v12 = self.face_vertices[:, :, 2] - self.face_vertices[:, :, 1]
-                self._surface_normals = jt.normalize(jt.cross(v12, v10), p=2, dim=2, eps=1e-6)
+                v10 = v10.float64()
+                v12 = v12.float64()
+                self._surface_normals = jt.normalize(jt.cross(v12, v10), p=2, dim=2, eps=1e-6).float32()
             else:
                 surface_normals=jt.sum(self._normal_textures,dim=2)/self.texture_res**2
                 surface_normals=surface_normals.unsqueeze(2)

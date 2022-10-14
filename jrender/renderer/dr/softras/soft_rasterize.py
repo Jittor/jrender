@@ -3,6 +3,7 @@ from jittor import nn
 from jittor import Function
 import numpy as np
 from .cuda import soft_rasterize as soft_rasterize_cuda
+from .cuda.soft_rasterize_coarse_to_fine import forward_soft_rasterize_coarse_to_fine
 
 class SoftRasterizeFunction(Function):
     def __init__(self, image_size=256, 
@@ -64,6 +65,7 @@ class SoftRasterizeFunction(Function):
         soft_colors[:, 1, :, :] *= background_color[1]
         soft_colors[:, 2, :, :] *= background_color[2]
 
+        '''
         # TODO: soft_colors do not init in cuda
         faces_info, aggrs_info, soft_colors = \
             soft_rasterize_cuda.forward_soft_rasterize(face_vertices, textures,
@@ -73,6 +75,17 @@ class SoftRasterizeFunction(Function):
                                                        sigma_val, func_dist_type, dist_eps,
                                                        gamma_val, func_rgb_type, func_alpha_type,
                                                        texture_type, int(fill_back))
+        '''
+
+        # TODO: soft_colors do not init in cuda
+        faces_info, aggrs_info, soft_colors = \
+            forward_soft_rasterize_coarse_to_fine(face_vertices, textures,
+                                                    faces_info, aggrs_info,
+                                                    soft_colors,
+                                                    image_size, near, far, eps,
+                                                    sigma_val, func_dist_type, dist_eps,
+                                                    gamma_val, func_rgb_type, func_alpha_type,
+                                                    texture_type, int(fill_back))
 
         self.save_vars = face_vertices, textures, soft_colors, faces_info, aggrs_info
         return soft_colors

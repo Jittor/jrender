@@ -55,10 +55,10 @@ def sample2D(texture, pos, default=999999):
         const scalar_t weight_y0 = 1 - weight_y1;
         for (int k = 0; k < dimension; k++) {
             scalar_t c = 0;
-            c += image[((int)pos_y * image_width + (int)pos_x) * 3 + k] * (weight_x0 * weight_y0);
-            c += image[((int)(pos_y + 1) * image_width + (int)pos_x) * 3 + k] * (weight_x0 * weight_y1);
-            c += image[((int)pos_y * image_width + ((int)pos_x) + 1) * 3 + k] * (weight_x1 * weight_y0);
-            c += image[((int)(pos_y + 1)* image_width + ((int)pos_x) + 1) * 3 + k] * (weight_x1 * weight_y1);
+            c += image[((int)pos_y * image_width + (int)pos_x) * dimension + k] * (weight_x0 * weight_y0);
+            c += image[((int)(pos_y + 1) * image_width + (int)pos_x) * dimension + k] * (weight_x0 * weight_y1);
+            c += image[((int)pos_y * image_width + ((int)pos_x) + 1) * dimension + k] * (weight_x1 * weight_y0);
+            c += image[((int)(pos_y + 1)* image_width + ((int)pos_x) + 1) * dimension + k] * (weight_x1 * weight_y1);
             valuen[k] = c;
         }
     } else {

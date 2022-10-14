@@ -189,8 +189,9 @@ class obj():
     def rescaling(self,scale):
         max = jt.max(self.face_vertices,dims=(0,1),keepdims=True)
         min = jt.min(self.face_vertices,dims=(0,1),keepdims=True)
-        center = (max - min) / 2
-        self._face_vertices = (self.face_vertices - center) / center * scale 
+        center = (max + min) / 2
+        scale = jt.max(max - min) / scale / 2
+        self._face_vertices = (self.face_vertices - center) / scale
 
 
 

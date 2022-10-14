@@ -302,6 +302,7 @@ def VSSM_cuda(eyeDepth, SAT, SAT2, uv, light, SM):
     near = light.near
     far = light.far
     DM_sl = math.tan(light.viewing_angle / 180. * math.pi)
+    side_length = 0.08
     return jt.code(shading.shape, shading.dtype, [eyeDepth, SAT, SAT2, uv, SM],
                    cuda_header='''
 #include<cuda.h>
@@ -312,11 +313,7 @@ __device__ __forceinline__ float Chebyshev_test(float mean, float variance, floa
     float denominator = max((a * a), 1e-5);
     float tail = min(max(variance / (variance + denominator), 0.), 1.);
     //float tail = min(max(variance / (denominator), 0.), 1.);
-    if (a > 0){
-        return 1 - tail / 2;
-    } else {
-        return tail / 2;
-    }
+    return tail;
 }
 
 template <typename scalar_t>
@@ -370,17 +367,27 @@ __global__ void VSSM_cuda_kernel(
     int yp = v * is;
     int x = i % is;
     int y = i / is;
-
 	float blocker_search_sl = min(side_length / unocclu_z * abs(unocclu_z - 1), shadow_map_sl);
     float search_offset = blocker_search_sl / shadow_map_sl / 2 * is;
     search_offset = min(max(search_offset, 0.), float(is / 2));
     
 	float z_avg = region_mean<double>(DepthMap, xp, yp, search_offset, is);
 	float z2_avg = region_mean<double>(DepthMap2, xp, yp, search_offset, is);
-	float occlusion = Chebyshev_test(z_avg, z2_avg - z_avg * z_avg, unocclu_z);
-    //float occlusion = 1 - region_mean<int>(SM, x, y, search_offset, is);
-    occlusion = min(max(occlusion, 0.), 1.);
-    float occlu_z_avg;
+    float occlusion;
+
+    if (unocclu_z < z_avg + 0.01) {
+        shading[i] = 1;
+        return;
+    }
+    else {
+	    occlusion = 1 - Chebyshev_test(z_avg, z2_avg - z_avg * z_avg, unocclu_z);
+    }
+
+    //occlusion = 1 - region_mean<int>(SM, x, y, search_offset, is);
+    //occlusion = min(max(occlusion, 0.), 1.);
+    float occlu_z_avg = (z_avg - (1 - occlusion) * unocclu_z) / occlusion;
+
+    /*
     if (occlusion > 1e-5){
         occlu_z_avg = (z_avg - (1 - occlusion) * unocclu_z) / occlusion;
         //occlu_z_avg = 1;
@@ -389,6 +396,8 @@ __global__ void VSSM_cuda_kernel(
         occlu_z_avg = z_avg;
         //occlu_z_avg = 1;
     }
+    */
+
     occlu_z_avg = min(max(occlu_z_avg, near), far);
 
 	float filter_size = (unocclu_z - occlu_z_avg) / occlu_z_avg * side_length;
@@ -396,13 +405,18 @@ __global__ void VSSM_cuda_kernel(
     filter_offset = min(max(filter_offset, 0.), float(is / 2));
 
 	//compute the visibility
-	//float filter_z_avg = region_mean<double>(DepthMap, xp, yp, filter_offset, is);
-	//float filter_z2_avg = region_mean<double>(DepthMap2, xp, yp, filter_offset, is);
-    //float visibility = (1 - Chebyshev_test(filter_z_avg, filter_z2_avg - filter_z_avg * filter_z_avg, unocclu_z));
-    float visibility = region_mean<int>(SM, x, y, filter_offset, is);
-    occlusion = min(max(visibility, 0.), 1.);
+	float filter_z_avg = region_mean<double>(DepthMap, xp, yp, filter_offset, is);
+	float filter_z2_avg = region_mean<double>(DepthMap2, xp, yp, filter_offset, is);
+    
+    if (unocclu_z < filter_z_avg + 0.005) {
+        shading[i] = 1;
+        return;
+    }
+    
+    float visibility = Chebyshev_test(filter_z_avg, filter_z2_avg - filter_z_avg * filter_z_avg, unocclu_z);
+    //float visibility = region_mean<int>(SM, x, y, filter_offset, is);
+    visibility = min(max(visibility, 0.), 1.);
     shading[i] = visibility;
-
 	return;
 }
     ''',

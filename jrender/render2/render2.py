@@ -256,12 +256,13 @@ class Render():
             light.DepthMap.uv = DepthMapUV
             LightDepth = light.DepthMap.query_uv
             # PCF filter
-            shading = eyeDepth-LightDepth < 0.04
+            shading = eyeDepth-LightDepth < 0.02
             shading = shading.unsqueeze(2)
             shading = shading.float32()
             filter_w = jt.ones([7, 7], "float32")/49
             shading = conv_for_image(shading, filter_w, 1)
-            # imsave("D:\Render\jrender\data\\results\\temp\\worldcoords.jpg",jt.clamp((worldcoords+1)/2,0,1))
+            imsave("D:\Render\jrender\data\\results\\temp\\lightDepth.jpg", LightDepth)
+            imsave("D:\Render\jrender\data\\results\\temp\\shading.jpg",shading)
             #LightDepth[LightDepth > self.far] = 0
             #imsave("D:\Render\jrender\data\\results\\temp\\lightDepth.jpg", LightDepth)
             # exit()
@@ -290,6 +291,8 @@ class Render():
             #shading = jt.clamp(shading,0,1)
             #shading[shading > 50] = 0
             #shading[shading < self.near] = 0
+            #filter_w = jt.ones([13, 13], "float32")/169
+            #shading = conv_for_image(shading, filter_w, 1)
             imsave("D:\Render\jrender\data\\results\\temp\\shading.bmp", shading)
             shading = shading.unsqueeze(2)
 
@@ -307,7 +310,7 @@ class Render():
             self.Rasterize(proj_vertices, proj_vertices, fill_back=light.fillback)
             DM = self.rasterize.save_vars[4][:, 0, :, :].squeeze(0)
             DM[DM > light.far] = light.far + 1
-            #imsave("D:\Render\jrender\data\\results\\temp\\DM.jpg", DM)
+            imsave("D:\Render\jrender\data\\results\\temp\\DM.jpg", DM)
             return DM
 
         elif light.type == "directional":

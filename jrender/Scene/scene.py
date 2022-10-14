@@ -20,6 +20,7 @@ class Scene():
         self._name_dic = {}
         self.name_dic_update = True
         self.render_target = [i for i in range(len(objects))]
+        self.print_scene()
 
     def set_obj(self):
         self.MRT_update = False
@@ -33,7 +34,11 @@ class Scene():
             obj.kd_res = res
 
     def set_roughness(self,ind,roughness):
-        self.objects[ind]._roughness = roughness
+        if isinstance(ind,list):
+            for _ind in ind:
+                    self.objects[_ind]._roughness = roughness
+        else:
+            self.objects[ind]._roughness = roughness
 
     def set_render_target(self, index):
         if isinstance(index, list):
@@ -47,13 +52,30 @@ class Scene():
         return
 
     def set_specular(self,ind,with_specular):
-        self.objects[ind].with_specular = with_specular
+        if isinstance(ind,list):
+            for _ind in ind:
+                self.objects[_ind].with_specular = with_specular
+        else:
+            self.objects[ind].with_specular = with_specular
 
     def set_GenerateNormal(self,ind,mode):
-        self.objects[ind].Generate_Normals = mode
+        if isinstance(ind,list):
+            for _ind in ind:
+                self.objects[_ind].Generate_Normals = mode
+        else:
+            self.objects[ind].Generate_Normals = mode
 
     def set_rescaling(self,ind,scale):
-        self.objects[ind].rescaling(scale)
+        if isinstance(ind,list):
+            for _ind in ind:
+                self.objects[_ind].rescaling(scale)
+        else:
+            self.objects[ind].rescaling(scale)
+
+    def print_scene(self):
+        print("Scene:")
+        for name in self.name_dic.keys():
+            print(f"name:{name} ind:{self.name_dic[name]}")
 
     @property
     def name_dic(self):
@@ -176,6 +198,8 @@ def load_obj(filename):
 
         if line.split()[0] == 'f':
             index = line.split()[1:]
+            if (len(index) == 4):
+                index = index[:3] + index[2:] + [index[0]]
             for ind in index:
                 v = ind.split('/')
                 if len(v) >= 2:

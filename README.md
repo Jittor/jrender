@@ -471,7 +471,7 @@ python nerf.py --config configs/lego.txt
 </p>
 
 
-基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是Pytorch-Nerf(bdb012e)版本的1.92-2.27倍。
+基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是NeRF官方版本的1.4倍。
 
 
 ## Citation

@@ -75,7 +75,7 @@ def main():
         model.renderer.transform.set_eyes_from_angles(2.732, 0, azimuth)
         images = model.renderer(model.vertices, model.faces, jt.tanh(model.textures))
         image = images.numpy()[0].transpose((1, 2, 0))
-        imsave('/tmp/_tmp_%04d.png' % num, image)
+        imsave('./tmp/_tmp_%04d.png' % num, image)
     make_gif(os.path.join(args.filename_output, 'result.gif'))
 
 

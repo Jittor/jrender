@@ -2,17 +2,18 @@ import jittor as jt
 
 def forward_soft_rasterize(face_vertices, textures,
     faces_info, aggrs_info,
-    soft_colors,
+    soft_colors, faces_id_buffer,
     image_size, near, far, eps,
     sigma_val, func_id_dist, dist_eps,
     gamma_val, func_id_rgb, func_id_alpha,
     texture_sample_type, double_side):
-    return jt.code([faces_info.shape, aggrs_info.shape, soft_colors.shape], [faces_info.dtype, aggrs_info.dtype, soft_colors.dtype],
+    return jt.code([faces_info.shape, aggrs_info.shape, soft_colors.shape, faces_id_buffer.shape], [faces_info.dtype, aggrs_info.dtype, soft_colors.dtype, faces_id_buffer.dtype],
     [face_vertices, textures],
     cuda_header='''
     #include <cuda.h>
     #include <cuda_runtime.h>
 
+#define kMaxPointsPerPixel 128
 
 namespace{
 
@@ -234,6 +235,10 @@ namespace{
         }
     }
 
+    struct Pixel{
+        int id;
+        float z;
+    };
 
     template <typename scalar_t>
     __global__ void forward_soft_rasterize_cuda_kernel(
@@ -242,9 +247,11 @@ namespace{
             const scalar_t* __restrict__ faces_info,
             scalar_t* aggrs_info,
             scalar_t* soft_colors,
+            int* faces_id_buffers,
             int batch_size,
             int num_faces,
             int image_size,
+            int max_faces_id,
             int texture_size,
             int texture_res,
             float near,
@@ -296,6 +303,10 @@ namespace{
         }
         scalar_t depth_min = 10000000;
         int face_index_min = -1;
+        Pixel q[kMaxPointsPerPixel];
+        int q_size = 0;
+        float q_max_z = -1;
+        int q_max_id = -1;
 
         for (int fn = 0; fn < nf; fn++) {
             face += 9;
@@ -352,6 +363,27 @@ namespace{
             barycentric_clip(w_clip);
             const scalar_t zp = 1. / (w_clip[0] / face[2] + w_clip[1] / face[5] + w_clip[2] / face[8]);
             if (zp < near || zp > far) continue; // triangle out of screen, pass
+            
+            ///////////////////////////////////////////////////
+            // choose Topk  
+            if (q_size < max_faces_id){
+                q[q_size] = {fn,zp};
+                if (zp > q_max_z){
+                    q_max_z = zp;
+                    q_max_id = q_size;
+                }
+                q_size++;
+            } else if (zp < q_max_z){
+                q[q_max_id] = {fn,zp};
+                q_max_z = -1;
+                for(int k = 0; k < q_size; k++){
+                    if(q[k].z > q_max_z){
+                        q_max_z = q[k].z;
+                        q_max_id = k;
+                    }
+                }
+            }
+            
 
             /////////////////////////////////////////////////////
             // aggregate for rgb channels
@@ -380,6 +412,7 @@ namespace{
                     }
                 }
             }
+            
         }
 
         //////////////////////////////////////////////
@@ -410,6 +443,9 @@ namespace{
             aggrs_info[(bn * 2 + 0) * (is * is) + pn] = softmax_sum;
             aggrs_info[(bn * 2 + 1) * (is * is) + pn] = softmax_max;
         }
+        for (int k = 0; k < q_size; k++) {
+            faces_id_buffers[(bn * max_faces_id + k) * (is * is) + pn] = q[k].id;
+        }
     }
 }
     ''',
@@ -419,15 +455,18 @@ namespace{
     @alias(faces_info, out0)
     @alias(aggrs_info, out1)
     @alias(soft_colors, out2)
+    @alias(faces_id_buffer, out3)
 
     cudaMemsetAsync(out0_p, 0, out0->size);
     cudaMemsetAsync(out1_p, 0, out1->size);
     cudaMemsetAsync(out2_p, 0, out2->size);
+    cudaMemsetAsync(out3_p, -1, out3->size);
 
     const auto batch_size = faces_shape0;
     const auto num_faces = faces_shape1;
     const auto texture_size = textures_shape2;
     const auto texture_res = int(sqrt(texture_size));
+    const auto max_faces_id = faces_id_buffer_shape1;
     const int threads = 512;
     const dim3 blocks_1 ((batch_size * num_faces - 1) / threads +1);
 
@@ -450,9 +489,11 @@ namespace{
         faces_info_p,
         aggrs_info_p,
         soft_colors_p,
+        faces_id_buffer_p,
         batch_size,
         num_faces,
         {image_size},
+        max_faces_id,
         texture_size,
         texture_res,
         {near},
@@ -472,7 +513,7 @@ namespace{
         printf("Error in forward_soft_rasterize: %s\\n", cudaGetErrorString(err));
     ''')
 
-def backward_soft_rasterize(faces, textures, soft_colors, 
+def backward_soft_rasterize_naive(faces, textures, soft_colors, 
     faces_info, aggrs_info,
     grad_faces, grad_textures, grad_soft_colors, 
     image_size, near, far, eps,
@@ -912,6 +953,476 @@ __global__ void backward_soft_rasterize_cuda_kernel(
         batch_size,
         num_faces,
         {image_size},
+        texture_size,
+        texture_res,
+        {near},
+        {far},
+        {eps},
+        {sigma_val},
+        {func_id_dist},
+        {dist_eps},
+        {gamma_val},
+        {func_id_rgb},
+        {func_id_alpha},
+        {texture_sample_type},
+        {double_side});
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) 
+        printf("Error in backward_soft_rasterize: %s", cudaGetErrorString(err));
+    ''')
+
+
+def backward_soft_rasterize(faces, textures, soft_colors, 
+    faces_info, aggrs_info, faces_id_buffer,
+    grad_faces, grad_textures, grad_soft_colors, 
+    image_size, near, far, eps,
+    sigma_val, func_id_dist, dist_eps,
+    gamma_val, func_id_rgb, func_id_alpha,
+    texture_sample_type, double_side):
+    return jt.code([grad_faces.shape, grad_textures.shape], [grad_faces.dtype, grad_textures.dtype], [faces, textures, soft_colors, 
+    faces_info, aggrs_info, grad_soft_colors, faces_id_buffer],
+    cuda_header='''
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+// for the older gpus atomicAdd with double arguments does not exist
+#ifndef _WIN32
+#if  __CUDA_ARCH__ < 600
+static __inline__ __device__ double atomicAdd(double* address, double val) {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                __double_as_longlong(val + __longlong_as_double(assumed)));
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN) } while (assumed != old);
+    } while (assumed != old);
+    return __longlong_as_double(old);
+}
+#endif
+#endif
+
+namespace{
+
+template <typename scalar_t>
+__device__ __forceinline__ void barycentric_coordinate(scalar_t *w, const scalar_t x, const scalar_t y, const scalar_t *face_info) {
+    w[0] = face_info[3 * 0 + 0] * x + face_info[3 * 0 + 1] * y + face_info[3 * 0 + 2];
+    w[1] = face_info[3 * 1 + 0] * x + face_info[3 * 1 + 1] * y + face_info[3 * 1 + 2];
+    w[2] = face_info[3 * 2 + 0] * x + face_info[3 * 2 + 1] * y + face_info[3 * 2 + 2];
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ bool check_border(const scalar_t x, const scalar_t y, const scalar_t *face, const scalar_t threshold) {
+    return (x > max(max(face[0], face[3]), face[6]) + threshold ||
+            x < min(min(face[0], face[3]), face[6]) - threshold ||
+            y > max(max(face[1], face[4]), face[7]) + threshold ||
+            y < min(min(face[1], face[4]), face[7]) - threshold);
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ bool check_face_frontside(const scalar_t *face) {
+    return (face[7] - face[1]) * (face[3] - face[0]) < (face[4] - face[1]) * (face[6] - face[0]);
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ bool check_pixel_inside(const scalar_t *w) {
+    return w[0] <= 1 && w[0] >= 0 && w[1] <= 1 && w[1] >= 0 && w[2] <= 1 && w[2] >= 0;
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ void barycentric_clip(scalar_t *w) {
+    for (int k = 0; k < 3; k++) w[k] = max(min(w[k], 1.), 0.);
+    const scalar_t w_sum = max(w[0] + w[1] + w[2], 1e-5);
+    for (int k = 0; k < 3; k++) w[k] /= w_sum;
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ void euclidean_p2f_distance(scalar_t &sign, scalar_t &dis_x, scalar_t &dis_y,
+                                                       scalar_t *w, scalar_t *t, 
+                                                       const scalar_t* face, const scalar_t *face_info,
+                                                       const scalar_t xp, const scalar_t yp) {
+    const scalar_t *face_sym = face_info + 9;
+    const scalar_t *face_obt = face_info + 18;
+
+    if (w[0] > 0 && w[1] > 0 && w[2] > 0 &&
+        w[0] < 1 && w[1] < 1 && w[2] < 1) {
+        // inside the triangle, w[0] + w[1] + w[2] = 0
+        scalar_t dis_min = 100000000;
+        scalar_t dis_x_min = 0;
+        scalar_t dis_y_min = 0;
+        scalar_t a0[3];
+        scalar_t t0[3];
+        for (int k = 0; k < 3; k++) {
+            int v0 = k;
+            int v1 = (k + 1) % 3;
+            int v2 = (k + 2) % 3;
+            a0[0] = face_sym[3 * v0 + 0] - face_sym[3 * v1 + 0];
+            a0[1] = face_sym[3 * v0 + 1] - face_sym[3 * v1 + 1];
+            a0[2] = face_sym[3 * v0 + 2] - face_sym[3 * v1 + 2];
+
+            t0[v0] = (w[0] * a0[0] + w[1] * a0[1] + w[2] * a0[2] - a0[v1]) / (a0[v0] - a0[v1]);
+            t0[v1] = 1 - t0[v0];
+            t0[v2] = 0;
+
+            t0[0] -= w[0];
+            t0[1] -= w[1];
+            t0[2] -= w[2];
+
+            // calculate distance
+            dis_x = t0[0] * face[0] + t0[1] * face[3] + t0[2] * face[6];
+            dis_y = t0[0] * face[1] + t0[1] * face[4] + t0[2] * face[7];
+            scalar_t dis = dis_x * dis_x + dis_y * dis_y;
+
+            if (dis < dis_min) {
+                dis_min = dis;
+                dis_x_min = dis_x;
+                dis_y_min = dis_y;
+                t[0] = t0[0];
+                t[1] = t0[1];
+                t[2] = t0[2];
+            }
+        }
+        dis_x = dis_x_min;
+        dis_y = dis_y_min;
+        sign = 1;
+    } else {
+        int v0 = -1;
+
+        if (w[1] <= 0 && w[2] <= 0) {
+            v0 = 0;
+            if (face_obt[0] == 1 && (xp - face[0]) * (face[6] - face[0]) + (yp - face[1]) * (face[7] - face[1]) > 0) v0 = 2;
+        } else if (w[2] <= 0 && w[0] <= 0) {
+            v0 = 1;
+            if (face_obt[1] == 1 && (xp - face[3]) * (face[0] - face[3]) + (yp - face[4]) * (face[1] - face[4]) > 0) v0 = 0;
+        } else if (w[0] <= 0 && w[1] <= 0) {
+            v0 = 2;
+            if (face_obt[2] == 1 && (xp - face[6]) * (face[3] - face[6]) + (yp - face[7]) * (face[4] - face[7]) > 0) v0 = 1;
+        } else
+        if (w[0] <= 0) v0 = 1;
+        else if (w[1] <= 0) v0 = 2;
+        else if (w[2] <= 0) v0 = 0;
+
+        const int v1 = (v0 + 1) % 3;
+        const int v2 = (v0 + 2) % 3;
+
+        scalar_t a0[3];
+
+        a0[0] = face_sym[3 * v0 + 0] - face_sym[3 * v1 + 0];
+        a0[1] = face_sym[3 * v0 + 1] - face_sym[3 * v1 + 1];
+        a0[2] = face_sym[3 * v0 + 2] - face_sym[3 * v1 + 2];
+
+        t[v0] = (w[0] * a0[0] + w[1] * a0[1] + w[2] * a0[2] - a0[v1]) / (a0[v0] - a0[v1]);
+        t[v1] = 1 - t[v0];
+        t[v2] = 0;
+
+        // clamp to [0, 1]
+        for (int k = 0; k < 3; k++) {
+            t[k] = min(max(t[k], 0.), 1.);
+            t[k] -= w[k];
+        }
+
+        // calculate distance
+        dis_x = t[0] * face[0] + t[1] * face[3] + t[2] * face[6];
+        dis_y = t[0] * face[1] + t[1] * face[4] + t[2] * face[7];
+        sign = -1;
+    }
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ void forward_barycentric_p2f_distance(scalar_t &dis, const scalar_t *w) {
+    dis = w[0] > w[1] ? (w[1] > w[2] ? w[2] : w[1]) : (w[0] > w[2] ? w[2] : w[0]);
+    dis = dis > 0 ? dis*dis : -dis*dis;
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ void backward_barycentric_p2f_distance(scalar_t grad_v[3][3], const scalar_t *w, const scalar_t *face_info, const scalar_t xp, const scalar_t yp, const scalar_t dis, const scalar_t C) {
+    const int p = w[0] > w[1] ? (w[1] > w[2] ? 2 : 1) : (w[0] > w[2] ? 2 : 0);
+    const scalar_t *face_inv = face_info;
+    for (int l = 0; l < 2; l++) {
+        for (int k = 0; k < 3; k++) {
+            scalar_t grad_kl = 0;
+            for (int q = 0; q < 3; q++) {
+                grad_kl += -face_inv[3*p+l] * face_inv[3*k+q] * (q == 0 ? xp : (q == 1 ? yp : 1));
+            }
+            grad_v[k][l] = grad_kl * C;
+            grad_v[k][l] *= dis > 0 ? (2. * sqrt(dis)) : (2. * sqrt(-dis));
+        }
+    }
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ scalar_t forward_sample_texture(const scalar_t *texture, const scalar_t *w, const int R, const int k, const int texture_sample_type) {
+    scalar_t texture_k;
+    if (texture_sample_type == 0) { // sample surface color with resolution as R
+        const int w_x = w[0] * R;
+        const int w_y = w[1] * R;
+        if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
+            texture_k = texture[(w_y * R + w_x) * 3 + k];
+        } else {
+            texture_k = texture[((R - 1 - w_y) * R + (R - 1 - w_x)) * 3 + k];
+        }
+    } else
+    if (texture_sample_type == 1) { // sample vertex color
+        texture_k = w[0] * texture[k] + w[1] * texture[3+k] + w[2] * texture[6+k];
+    }
+    return texture_k;
+}
+
+
+template <typename scalar_t>
+__device__ __forceinline__ scalar_t backward_sample_texture(const scalar_t grad_color, const scalar_t *w, const int R, const int k, const int texture_sample_type) {
+    scalar_t grad_texture_k;
+    if (texture_sample_type == 0) { // sample surface color with resolution as R
+        const int w_x = w[0] * R;
+        const int w_y = w[1] * R;
+        if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
+            if (k == w_y * R + w_x) {
+                grad_texture_k = grad_color;
+            }
+        } else {
+            if (k == (R - 1 - w_y) * R + (R - 1 - w_x)) {
+                grad_texture_k = grad_color;
+            }
+        }
+    } else
+    if (texture_sample_type == 1) {
+        grad_texture_k = w[k] * grad_color;
+    }
+    return grad_texture_k;
+}
+
+
+template <typename scalar_t>
+__global__ void backward_soft_rasterize_cuda_kernel(
+        const scalar_t* __restrict__ faces,
+        const int* __restrict__ faces_id_buffers,
+        const scalar_t* __restrict__ textures,
+        const scalar_t* __restrict__ soft_colors,
+        const scalar_t* __restrict__ faces_info,
+        const scalar_t* __restrict__ aggrs_info, // 0: sum, 1: max z*D
+        scalar_t* grad_faces,
+        scalar_t* grad_textures,
+        scalar_t* grad_soft_colors,
+        int batch_size,
+        int num_faces,
+        int image_size,
+        int max_faces_id,
+        int texture_size,
+        int texture_res,
+        float near,
+        float far,
+        float eps,
+        float sigma_val,
+        int func_id_dist,
+        float dist_eps,
+        float gamma_val,
+        int func_id_rgb,
+        int func_id_alpha,
+        int texture_sample_type,
+        bool double_side) {
+
+    ////////////////////////
+    ////////////////////////
+
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= batch_size * image_size * image_size) {
+        return;
+    }
+    const int is = image_size;
+    const int nf = num_faces;
+    const int mf = max_faces_id;
+    const int bn = i / (is * is);
+    const int pn = i % (is * is);
+    const int yi = is - 1 - (pn / is);
+    const int xi = pn % is;
+    const scalar_t yp = (2. * yi + 1 - is) / is;
+    const scalar_t xp = (2. * xi + 1 - is) / is;
+
+    const scalar_t* face;
+    const scalar_t* texture;
+    const scalar_t* face_info;
+    const int* faces_id_buffer = &faces_id_buffers[bn * is * is * mf + pn * mf];
+
+    const scalar_t threshold = dist_eps * sigma_val;
+
+    const scalar_t softmax_sum = aggrs_info[(bn * 2 + 0) * (is * is) + pn];
+    const scalar_t softmax_max = aggrs_info[(bn * 2 + 1) * (is * is) + pn];
+
+    for (int m = 0; m < mf; m++) {
+        int fn = faces_id_buffer[m];
+
+        if (fn == -1){
+            break;
+        }
+
+        face = &faces[(bn * nf + fn) * 9];
+        texture = &textures[(bn * nf + fn) * texture_size * 3];
+        face_info = &faces_info[(bn * nf + fn) * 27];
+
+        if (check_border(xp, yp, face, sqrt(threshold))) continue;
+
+        scalar_t dis;
+        scalar_t dis_x;
+        scalar_t dis_y;
+        scalar_t t[3];
+        scalar_t w[3];
+        scalar_t w0[3];
+        scalar_t sign;
+        scalar_t soft_fragment;
+
+        barycentric_coordinate(w, xp, yp, face_info);
+
+        // compute probability map based on distance functions
+        if (func_id_dist == 0) { // hard assign
+            soft_fragment = 1;
+        } else
+        if (func_id_dist == 1) { // barycentric distance
+            forward_barycentric_p2f_distance(dis, w);
+            for (int k = 0; k < 3; k++) t[k] = w[k];
+            soft_fragment = 1. / (1. + exp(-dis / sigma_val));
+        } else
+        if (func_id_dist == 2) { // euclidean distance
+            euclidean_p2f_distance(sign, dis_x, dis_y, w, t, face, face_info, xp, yp);
+            dis = dis_x * dis_x + dis_y * dis_y;
+            soft_fragment = 1. / (1. + exp(-sign * dis / sigma_val));
+        }
+
+
+        scalar_t* grad_face = &grad_faces[(bn * nf + fn) * 9];
+        scalar_t* grad_texture = &grad_textures[(bn * nf + fn) * texture_size * 3];
+        scalar_t grad_v[3][3] = {0};
+        scalar_t C_grad_xy = 0;
+
+        /////////////////////////////////////////////////////
+
+        // aggragate for alpha channel
+        scalar_t C_grad_xy_alpha = grad_soft_colors[(bn * 4 + 3) * (is * is) + pn];
+        if (func_id_alpha == 0) { // hard assign
+            // hard assign alpha channels does not have gradient
+        } else
+        if (func_id_alpha == 1) { // Sum
+            C_grad_xy_alpha /= nf;
+        } else 
+        if (func_id_alpha == 2) { // Logical-Or
+            C_grad_xy_alpha *= (1 - soft_colors[(bn * 4 + 3) * (is * is) + pn]) / max(1 - soft_fragment, 1e-6);
+        }
+        C_grad_xy += C_grad_xy_alpha;
+
+        /////////////////////////////////////////////////////
+        for (int k = 0; k < 3; k++) w0[k] = w[k];
+        barycentric_clip(w);
+        const scalar_t zp = 1. / (w[0] / face[2] + w[1] / face[5] + w[2] / face[8]);
+
+        // aggregate for rgb channels
+        if (func_id_rgb == 0) { // Hard assign, no gradient to xyz
+            if (fn == softmax_max){
+                for (int k = 0; k < 3; k++) {
+                    for (int j = 0; j < texture_size; j++) {
+                        atomicAdd(&grad_texture[3 * j + k], backward_sample_texture(grad_soft_colors[(bn * 4 + k) * (is * is) + pn], w, texture_res, j, texture_sample_type));
+                    }
+                }
+            }
+        } else
+        if (func_id_rgb == 1) { // Softmax (Z * D)
+            scalar_t C_grad_xyz_rgb = 0.;
+
+            const scalar_t zp_norm = (far - zp) / (far - near);
+            const scalar_t zp_softmax = soft_fragment * exp((zp_norm - softmax_max) / gamma_val) / softmax_sum;
+
+            for (int k = 0; k < 3; k++) {
+                const scalar_t grad_soft_color_k = grad_soft_colors[(bn * 4 + k) * (is * is) + pn];
+
+                for (int j = 0; j < texture_size; j++) {
+                    const scalar_t grad_t = backward_sample_texture(grad_soft_color_k, w, texture_res, j, texture_sample_type);
+                    atomicAdd(&grad_texture[3 * j + k], zp_softmax * grad_t);
+                }
+
+                const scalar_t color_k = forward_sample_texture(texture, w, texture_res, k, texture_sample_type);
+                C_grad_xyz_rgb += grad_soft_color_k * (color_k - soft_colors[(bn * 4 + k) * (is * is) + pn]);
+            }
+            C_grad_xyz_rgb *= zp_softmax;
+            C_grad_xy += C_grad_xyz_rgb / soft_fragment;
+
+            const scalar_t C_grad_z_rgb = C_grad_xyz_rgb / gamma_val / (near - far) * zp * zp;
+            grad_v[0][2] = C_grad_z_rgb * w[0] / face[2] / face[2];
+            grad_v[1][2] = C_grad_z_rgb * w[1] / face[5] / face[5];
+            grad_v[2][2] = C_grad_z_rgb * w[2] / face[8] / face[8];
+        }
+
+        /////////////////////////////////////////////////////
+
+        C_grad_xy *= soft_fragment * (1 - soft_fragment) / sigma_val; // sigmoid gradient
+        // compute probability map gradient based on distance functions
+        if (func_id_dist == 1) { // barycentric distance
+            backward_barycentric_p2f_distance(grad_v, t, face_info, xp, yp, dis, C_grad_xy);
+        } else
+        if (func_id_dist == 2) { // euclidean distance
+            for (int k = 0; k < 3; k++) {
+                for (int l = 0; l < 2; l++) {
+                    grad_v[k][l] = 2 * sign * C_grad_xy * (t[k] + w0[k]) * (l == 0 ? dis_x : dis_y);
+                }
+            }
+        }
+
+        atomicAdd(&grad_face[0], grad_v[0][0]);
+        atomicAdd(&grad_face[1], grad_v[0][1]);
+        atomicAdd(&grad_face[3], grad_v[1][0]);
+        atomicAdd(&grad_face[4], grad_v[1][1]);
+        atomicAdd(&grad_face[6], grad_v[2][0]);
+        atomicAdd(&grad_face[7], grad_v[2][1]);
+
+        atomicAdd(&grad_face[2], grad_v[0][2]);
+        atomicAdd(&grad_face[5], grad_v[1][2]);
+        atomicAdd(&grad_face[8], grad_v[2][2]);
+    }
+}
+}
+    ''',
+    cuda_src=f'''
+    @alias(faces, in0)
+    @alias(textures, in1)
+    @alias(soft_colors, in2)
+    @alias(faces_info, in3)
+    @alias(aggrs_info, in4)
+    @alias(grad_soft_colors, in5)
+    @alias(faces_id_buffer,in6)
+    @alias(grad_faces, out0)
+    @alias(grad_textures, out1)
+
+    cudaMemsetAsync(out0_p, 0, out0->size);
+    cudaMemsetAsync(out1_p, 0, out1->size);
+
+    const auto batch_size = faces_shape0;
+    const auto num_faces = faces_shape1;
+    const auto texture_size = textures_shape2;
+    const auto texture_res = int(sqrt(texture_size));
+    const auto max_faces_id = faces_id_buffer_shape3;
+    const int threads = 512;
+    const dim3 blocks ((batch_size * {image_size} * {image_size} - 1) / threads + 1);
+
+    backward_soft_rasterize_cuda_kernel<float32><<<blocks, threads>>>(
+        faces_p,
+        faces_id_buffer_p,
+        textures_p,
+        soft_colors_p,
+        faces_info_p,
+        aggrs_info_p,
+        grad_faces_p,
+        grad_textures_p,
+        grad_soft_colors_p,
+        batch_size,
+        num_faces,
+        {image_size},
+        max_faces_id,
         texture_size,
         texture_res,
         {near},

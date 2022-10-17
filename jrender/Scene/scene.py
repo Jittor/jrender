@@ -23,6 +23,7 @@ class Scene():
         self.print_scene()
 
     def set_obj(self):
+        #TODO
         self.MRT_update = False
         return
 

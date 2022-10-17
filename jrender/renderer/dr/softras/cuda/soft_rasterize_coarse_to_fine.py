@@ -1,15 +1,22 @@
+import chunk
+from math import ceil
 import jittor as jt
+
+# chunk_size : 512
 
 def forward_soft_rasterize_coarse_to_fine(face_vertices, textures,
     faces_info, aggrs_info,
-    soft_colors,
+    soft_colors, faces_id_buffer,
     image_size, near, far, eps,
     sigma_val, func_id_dist, dist_eps,
     gamma_val, func_id_rgb, func_id_alpha,
     texture_sample_type, double_side, 
     bin_size, max_elems_per_bin):
     blur_radius = 0.01
-    return jt.code([faces_info.shape, aggrs_info.shape, soft_colors.shape], [faces_info.dtype, aggrs_info.dtype, soft_colors.dtype],
+    num_bins_edge = ceil(image_size / bin_size)
+    if num_bins_edge > 25:
+        raise ValueError("forward_soft_rasterize_coarse_to_fine got num_bins_edge, that's too many, try to enlarge the bin_size")
+    return jt.code([faces_info.shape, aggrs_info.shape, soft_colors.shape, faces_id_buffer.shape], [faces_info.dtype, aggrs_info.dtype, soft_colors.dtype, faces_id_buffer.dtype],
     [face_vertices, textures],
     cuda_header='''
 #include <cuda.h>
@@ -20,6 +27,7 @@ def forward_soft_rasterize_coarse_to_fine(face_vertices, textures,
 #include <sm_32_atomic_functions.h>
 
 #define kEpsilon 1e-8
+#define kMaxPointsPerPixel 128
 
 class BitMask {
 public:
@@ -129,6 +137,7 @@ __global__ void RasterizeCoarseCudaKernel(
     const int max_elem_per_bin,
     int* elems_per_bin,
     int* bin_elems) {
+    
     extern __shared__ char sbuf[];
     const int M = max_elem_per_bin;
     // Integer divide round up
@@ -150,15 +159,21 @@ __global__ void RasterizeCoarseCudaKernel(
     for (int chunk = blockIdx.x; chunk < num_chunks; chunk += gridDim.x) {
         const int batch_idx = chunk / chunks_per_batch; // batch index
         const int chunk_idx = chunk % chunks_per_batch;
-        const int elem_chunk_start_idx = chunk_idx * chunk_size;
+        const int elem_chunk_start_idx = batch_idx * E + chunk_idx * chunk_size;
 
         binmask.block_clear();
         const int64_t elem_start_idx = batch_idx * E;
         const int64_t elem_stop_idx = (batch_idx + 1) * E;
-
         // Have each thread handle a different face within the chunk
         for (int e = threadIdx.x; e < chunk_size; e += blockDim.x) {
             const int e_idx = elem_chunk_start_idx + e;
+
+            /*
+            if (blockIdx.x == 16){
+                printf("chunk: %d threadIdx.x: %d num_chunks: %d e: %d chunk_idx: %d elem_chunk_start_idx: %d e_idx: %d \\n", 
+                                chunk,threadIdx.x,num_chunks,e,chunk_idx,elem_chunk_start_idx,e_idx);
+            }
+            */
 
             // Check that we are still within the same element of the batch
             if (e_idx >= elem_stop_idx || e_idx < elem_start_idx) {
@@ -168,10 +183,10 @@ __global__ void RasterizeCoarseCudaKernel(
             if (should_skip[e_idx]) {
                 continue;
             }
-            const float xmin = bboxes[0 * E + e_idx];
-            const float xmax = bboxes[1 * E + e_idx];
-            const float ymin = bboxes[2 * E + e_idx];
-            const float ymax = bboxes[3 * E + e_idx];
+            const float xmin = bboxes[0 * E * N + e_idx];
+            const float xmax = bboxes[1 * E * N + e_idx];
+            const float ymin = bboxes[2 * E * N + e_idx];
+            const float ymax = bboxes[3 * E * N + e_idx];
 
             // Brute-force search over all bins; TODO(T54294966) something smarter.
             for (int by = 0; by < num_bins_edge; ++by) {
@@ -180,23 +195,32 @@ __global__ void RasterizeCoarseCudaKernel(
                 // need to add/subtract a half pixel to get the true extent of the bin.
                 // Reverse ordering of Y axis so that +Y is upwards in the image.
                 const float bin_y_min =
-                    (2 * by * bin_size + 1) / is - 1 - half_pix;
+                    float(2 * by * bin_size + 1) / is - 1 - half_pix;
                 const float bin_y_max =
-                    (2 * ((by + 1) * bin_size - 1) + 1) / is - 1 + half_pix;
+                    float(2 * ((by + 1) * bin_size - 1) + 1) / is - 1 + half_pix;
                 const bool y_overlap = (ymin <= bin_y_max) && (bin_y_min < ymax);
 
                 for (int bx = 0; bx < num_bins_edge; ++bx) {
                     // X coordinate of the left and right of the bin.
                     // Reverse ordering of x axis so that +X is left.
                     const float bin_x_max =
-                     (2 * ((bx + 1) * bin_size - 1) + 1) / is - 1 + half_pix;
+                     float(2 * ((bx + 1) * bin_size - 1) + 1) / is - 1 + half_pix;
                     const float bin_x_min =
-                     (2 * (bx * bin_size) + 1) / is - 1 - half_pix;
+                     float(2 * (bx * bin_size) + 1) / is - 1 - half_pix;
 
                     const bool x_overlap = (xmin <= bin_x_max) && (bin_x_min < xmax);
                     if (y_overlap && x_overlap) {
                         binmask.set(by, bx, e);
+
+                    /*
+                    if (blockIdx.x == 0){
+                        printf("bin_y_min: %f bin_y_max: %f bx: %d by: %d chunk: %d threadIdx.x: %d num_chunks: %d e: %d chunk_idx: %d elem_chunk_start_idx: %d e_idx: %d \\n", 
+                                bin_y_min,bin_y_max,bx,by,chunk,threadIdx.x,num_chunks,e,chunk_idx,elem_chunk_start_idx,e_idx);
                     }
+                    */
+
+                    }
+
                 }
             }
         }
@@ -250,6 +274,7 @@ __global__ void RasterizeCoarseCudaKernel(
         }
         __syncthreads();
     }
+    
 }
 
 namespace {
@@ -415,19 +440,6 @@ namespace {
 		return texture_k;
 	}
 
-	template <typename scalar_t>
-	__device__ __forceinline__ scalar_t sample_worldcoords_z(const scalar_t* face, const scalar_t xp, const scalar_t yp) {
-		scalar_t a = (face[3 * 1 + 1] - face[3 * 0 + 1]) * (face[3 * 2 + 2] - face[3 * 0 + 2]) - (face[3 * 2 + 1] - face[3 * 0 + 1]) * (face[3 * 1 + 2] - face[3 * 0 + 2]);
-		scalar_t b = (face[3 * 1 + 2] - face[3 * 0 + 2]) * (face[3 * 2 + 0] - face[3 * 0 + 0]) - (face[3 * 2 + 2] - face[3 * 0 + 2]) * (face[3 * 1 + 0] - face[3 * 0 + 0]);
-		scalar_t c = (face[3 * 1 + 0] - face[3 * 0 + 0]) * (face[3 * 2 + 1] - face[3 * 0 + 1]) - (face[3 * 2 + 0] - face[3 * 0 + 0]) * (face[3 * 1 + 1] - face[3 * 0 + 1]);
-
-		scalar_t numerator = a * face[3 * 0 + 0] + b * face[3 * 0 + 1] + c * face[3 * 0 + 2];
-		scalar_t denominator = a * xp + b * yp + c;
-		denominator = denominator > 0 ? max(denominator, 1e-10) : min(denominator, -1e-10);
-		return	numerator / denominator
-	}
-
-
 	// triangle preprocessing
 	template <typename scalar_t>
 	__global__ void forward_soft_rasterize_inv_cuda_kernel(
@@ -491,6 +503,10 @@ namespace {
 		}
 	}
 
+    struct Pixel{
+        int id;
+        float z;
+    };
 
 	template <typename scalar_t>
 	__global__ void forward_soft_rasterize_cuda_kernel(
@@ -498,14 +514,17 @@ namespace {
 		const scalar_t* __restrict__ textures,
 		const scalar_t* __restrict__ faces_info,
 		const int* bin_faces,
+        const int* num_bin_faces,
 		scalar_t* aggrs_info,
 		scalar_t* soft_colors,
+        int* faces_id_buffers,
 		int B,
 		int M,
 		int bin_size,
 		int batch_size,
 		int num_faces,
 		int image_size,
+        int max_faces_id,
 		int texture_size,
 		int texture_res,
 		float near,
@@ -524,17 +543,30 @@ namespace {
 		////////////////////////
 
 		const int i = blockIdx.x * blockDim.x + threadIdx.x;
-		if (i >= batch_size * image_size * image_size) {
-			return;
-		}
 		const int is = image_size;
 		const int nf = num_faces;
-		const int bn = i / (is * is);
-		const int pn = i % (is * is);
-		const int yi = is - 1 - (pn / is);
-		const int xi = pn % is;
-		const scalar_t yp = (2. * yi + 1. - is) / is;
+
+        int ii = i;
+		const int bn = ii / (B * B * bin_size * bin_size);
+        if (bn >= batch_size){
+            return;
+        }
+		ii %= B * B * bin_size * bin_size;
+		// bin index y
+		const int by = ii / (B * bin_size * bin_size);
+		ii %= B * bin_size * bin_size;
+		// bin index y
+		const int bx = ii / (bin_size * bin_size);
+		// pixel within the bin
+		ii %= bin_size * bin_size;
+        const int yi = (ii / bin_size + by * bin_size);
+        const int xi = ii % bin_size + bx * bin_size;
+        if (yi >= is || xi >= is){
+            return;
+        }
+        const scalar_t yp = (2. * yi + 1. - is) / is;
 		const scalar_t xp = (2. * xi + 1. - is) / is;
+        const int pn = (is - 1 - yi) * is + xi;
 
 		const scalar_t* face;
 		const scalar_t* texture;
@@ -558,20 +590,27 @@ namespace {
 		}
 		scalar_t depth_min = 10000000;
 		int face_index_min = -1;
-		int tid = i;
-		const int n = i / (B * B * bin_size * bin_size);
-		tid %= B * B * bin_size * bin_size;
-		// bin index y
-		const int by = i / (B * bin_size * bin_size);
-		tid %= B * bin_size * bin_size;
-		// bin index y
-		const int bx = i / (bin_size * bin_size);
-		// pixel within the bin
-		tid %= bin_size * bin_size;
-
+        int faces_overlap_pixel = 0;
+        int faces_to_search_max = num_bin_faces[bn * B * B  + by * B + bx];
+        Pixel q[kMaxPointsPerPixel];
+        int q_size = 0;
+        float q_max_z = -1;
+        int q_max_id = -1;
 
 		for (int m = 0; m < M; m++) {
-			int fn = bin_faces[n * B * B * M + by * B * M + bx * M + m];
+            
+			int fn = bin_faces[bn * B * B * M + by * B * M + bx * M + m];
+            
+            if (fn < 0){
+                continue;
+            }
+            
+            if (faces_overlap_pixel >= faces_to_search_max){
+                break;
+            }
+            faces_overlap_pixel++;
+            
+            
 			face = &faces[fn * 9];
 			texture = &textures[fn * texture_size * 3];
 			face_info = &faces_info[fn * 27];
@@ -631,6 +670,27 @@ namespace {
 			const scalar_t zp = 1. / (w_clip[0] / face[2] + w_clip[1] / face[5] + w_clip[2] / face[8]);
 			if (zp < near || zp > far) continue; // triangle out of screen, pass
 
+            ///////////////////////////////////////////////////
+            // choose Topk  
+            if (q_size < max_faces_id){
+                q[q_size] = {fn % num_faces,zp};
+                if (zp > q_max_z){
+                    q_max_z = zp;
+                    q_max_id = q_size;
+                }
+                q_size++;
+            } else if (zp < q_max_z){
+                q[q_max_id] = {fn % num_faces,zp};
+                q_max_z = -1;
+                for(int k = 0; k < q_size; k++){
+                    if(q[k].z > q_max_z){
+                        q_max_z = q[k].z;
+                        q_max_id = k;
+                    }
+                }
+            }
+
+
 			/////////////////////////////////////////////////////
 			// aggregate for rgb channels
 			if (func_id_rgb == 0) { // Hard assign
@@ -659,10 +719,11 @@ namespace {
 						}
 					}
 				}
+            
 		}
 
 		//////////////////////////////////////////////
-
+        
 		// finalize aggregation
 		if (func_id_alpha == 0) {
 			soft_colors[(bn * 4 + 3) * (is * is) + pn] = soft_color[3];
@@ -692,6 +753,9 @@ namespace {
 				aggrs_info[(bn * 2 + 0) * (is * is) + pn] = softmax_sum;
 				aggrs_info[(bn * 2 + 1) * (is * is) + pn] = softmax_max;
 			}
+        for (int k = 0; k < q_size; k++) {
+            faces_id_buffers[(bn * max_faces_id + k) * (is * is) + pn] = q[k].id;
+        }
 	}
 }
 
@@ -702,22 +766,25 @@ namespace {
 @alias(faces_info, out0)
 @alias(aggrs_info, out1)
 @alias(soft_colors, out2)
+@alias(faces_id_buffer,out3)
 
 cudaMemsetAsync(out0_p, 0, out0->size);
 cudaMemsetAsync(out1_p, 0, out1->size);
 cudaMemsetAsync(out2_p, 0, out2->size);
+cudaMemsetAsync(out3_p, -1, out3->size);
 
 const auto batch_size = faces_shape0;
 const auto num_faces = faces_shape1;
+const auto max_faces_id = faces_id_buffer_shape1;
 const auto texture_size = textures_shape2;
 const auto texture_res = int(sqrt(texture_size));
 const size_t threads_1 = 512;
-const size_t blocks_1 = ((batch_size * num_faces - 1) / threads + 1);
+const size_t blocks_1 = ((batch_size * num_faces - 1) / threads_1 + 1);
 
 float* bboxes;
 bool* should_skip;
-cudaMalloc(&bboxes, batch_size * num_faces * 4 * sizeof(float));
-cudaMalloc(&should_skip, batch_size * num_faces * sizeof(bool));
+cudaMalloc((void**)&bboxes, batch_size * num_faces * 4 * sizeof(float));
+cudaMalloc((void**)&should_skip, batch_size * num_faces * sizeof(bool));
 
 forward_soft_rasterize_inv_cuda_kernel<float32><<<blocks_1, threads_1>>>(
     faces_p,
@@ -734,17 +801,22 @@ TriangleBoundingBoxKernel<<<blocks_2, threads_2>>>(
       {blur_radius},
       bboxes,
       should_skip);
-cudaDeviceSynchronize();
 
 const int num_bins_edge = 1 + ({image_size} - 1) / {bin_size};
-int* elems_per_bin, bin_elems;
-cudaMalloc(&elems_per_bin, batch_size * num_bins_edge * num_bins_edge * sizeof(int));
-cudaMalloc(&bin_elems, batch_size * num_bins_edge * num_bins_edge * {max_elems_per_bin} * sizeof(int));
+int* elems_per_bin;
+int* bin_elems;
+size_t size2 = batch_size * num_bins_edge * num_bins_edge * sizeof(int);
+cudaMalloc((void**)&elems_per_bin, size2);
+cudaMemset(elems_per_bin,0,size2);
+size_t size1 = batch_size * num_bins_edge * num_bins_edge * {max_elems_per_bin} * sizeof(int);
+cudaMalloc((void**)&bin_elems, size1);
+cudaMemset(bin_elems,-1,size1);
+cudaDeviceSynchronize();
 
 const size_t blocks_3 = 64;
 const size_t threads_3 = 512;
 const int chunk_size = 512;
-const size_t shared_size = num_bins_edge * num_bins_edge * chunk_size / 8;
+const int shared_size = num_bins_edge * num_bins_edge * chunk_size / 8;
 RasterizeCoarseCudaKernel<<<blocks_3, threads_3, shared_size>>>(
       bboxes,
       should_skip,
@@ -758,21 +830,28 @@ RasterizeCoarseCudaKernel<<<blocks_3, threads_3, shared_size>>>(
       bin_elems);
 cudaDeviceSynchronize();
 
-const size_t threads_4 = 512;
-const size_t blocks_4 = ((batch_size * {image_size} * {image_size} - 1) / threads + 1);
-forward_soft_rasterize_cuda_kernel<float32><<<blocks_2, threads>>>(
+cudaFree(bboxes);
+cudaFree(should_skip);
+
+
+const size_t threads_4 = 128;
+const size_t blocks_4 = ((batch_size * {bin_size} * {bin_size} * num_bins_edge * num_bins_edge - 1) / threads_4 + 1);
+forward_soft_rasterize_cuda_kernel<float32><<<blocks_4, threads_4>>>(
     faces_p,
     textures_p,
     faces_info_p,
-    bin_faces,
+    bin_elems,
+    elems_per_bin,
     aggrs_info_p,
     soft_colors_p,
+    faces_id_buffer_p,
     num_bins_edge,
     {max_elems_per_bin},
     {bin_size},
     batch_size,
     num_faces,
     {image_size},
+    max_faces_id,
     texture_size,
     texture_res,
     {near},
@@ -787,8 +866,12 @@ forward_soft_rasterize_cuda_kernel<float32><<<blocks_2, threads>>>(
     {texture_sample_type},
     {double_side});
 
-err = cudaGetLastError();
+
+cudaFree(elems_per_bin);
+cudaFree(bin_elems);
+
+
+cudaError_t err = cudaGetLastError();
 if (err != cudaSuccess) 
-    printf("Error in forward_soft_rasterize: %s\\n", cudaGetErrorString(err));
+    printf("Error in forward_soft_rasterize_coarse_to_fine: %s\\n", cudaGetErrorString(err));
 ''')
-    ''')

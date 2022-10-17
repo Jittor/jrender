@@ -5,6 +5,7 @@ from .lighting import *
 from .transform import *
 from .dr import *
 from ..structures import *
+import jrender as jr
 
 class Renderer(nn.Module):
     def __init__(self, image_size=256, background_color=[0,0,0], near=1, far=100, 
@@ -19,7 +20,7 @@ class Renderer(nn.Module):
                  light_mode='surface',
                  light_intensity_ambient=0.5, light_color_ambient=[1,1,1],
                  light_intensity_directionals=0.5, light_color_directionals=[1,1,1],
-                 light_directions=[0,1,0], dr_type='softras', Gbuffer='None'):
+                 light_directions=[0,1,0], dr_type='softras', Gbuffer='None', bin_size=0, max_elems_per_bin=0):
         super(Renderer, self).__init__()
         # camera
         self.transform = Transform(camera_mode, 
@@ -39,7 +40,7 @@ class Renderer(nn.Module):
                                             anti_aliasing, fill_back, eps,
                                             sigma_val, dist_func, dist_eps,
                                             gamma_val, aggr_func_rgb, aggr_func_alpha,
-                                            texture_type)
+                                            texture_type, bin_size, max_elems_per_bin)
         elif dr_type == 'n3mr':
             self.rasterizer = N3mrRasterizer(image_size, anti_aliasing, background_color, fill_back)
         else:
@@ -65,5 +66,5 @@ class Renderer(nn.Module):
         
 
     def execute(self, vertices, faces, textures=None,mode='rgb', texture_type='surface', metallic_textures=None, roughness_textures=None):
-        mesh = Mesh(vertices, faces, textures=textures, texture_type=texture_type, metallic_textures=metallic_textures, roughness_textures=roughness_textures)
+        mesh = jr.Mesh(vertices, faces, textures=textures, texture_type=texture_type, metallic_textures=metallic_textures, roughness_textures=roughness_textures)
         return self.render_mesh(mesh, mode)

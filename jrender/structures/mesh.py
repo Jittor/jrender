@@ -300,6 +300,7 @@ class Mesh(object):
                                     load_texture=False, dr_type=dr_type)
             textures = None
             normal_textures= None
+            face_texcoords = None
             TBN = None
         return cls(vertices, faces, textures, texture_res, texture_type, dr_type=dr_type,normal_textures=normal_textures,TBN=TBN,with_SSS=with_SSS,face_texcoords=face_texcoords)
 

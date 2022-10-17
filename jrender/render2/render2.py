@@ -30,7 +30,8 @@ class Render():
                  camera_mode='look',
                  K=None, R=None, t=None, dist_coeffs=None, orig_size=512,
                  perspective=True, viewing_angle=30, viewing_scale=1.0,
-                 eye=None, camera_direction=[0, 0, 1], threshold=2e-2, up=[0, 1, 0], MSAA=False
+                 eye=None, camera_direction=[0, 0, 1], threshold=2e-2, up=[0, 1, 0], MSAA=False,
+                 bin_size=0, max_elems_per_bin=0
                  ):
 
         self.transform = Transform(camera_mode,
@@ -83,9 +84,18 @@ class Render():
         self.image_size = image_size
         self.background_color = background_color
         self.MSAA = MSAA
+        self.bin_size = bin_size
+        self.max_elems_per_bin = max_elems_per_bin
 
         self.rasterize = SoftRasterizeFunction(image_size,
-                                        background_color=background_color, near=near, far=far, texture_type=self.texture_type, dist_func="barycentric", aggr_func_rgb="hard")
+                                               background_color=background_color,
+                                               near=near,
+                                               far=far,
+                                               texture_type=self.texture_type,
+                                               dist_func="barycentric",
+                                               aggr_func_rgb="hard",
+                                               bin_size=self.bin_size,
+                                               max_elems_per_bin=self.max_elems_per_bin)
 
     def view_rotate_m(self):
         z = jt.normalize(jt.array(self.camera_direction, "float32").unsqueeze(0), eps=1e-5)
@@ -133,11 +143,11 @@ class Render():
             viewing_angle = self.viewing_angle
         return Transform(viewing_angle=viewing_angle).projection_transform(vertices)
 
-    def Rasterize(self, face_proj, face_info, MSAA=False, fill_back=True, texture_type = "vertex"):
+    def Rasterize(self, face_proj, face_info, MSAA=False, fill_back=True, texture_type="vertex"):
         if len(face_info) == 0:
             return jt.array([])
         self.rasterize.fill_back = fill_back
-        self.rasterize.texture_type = texture_type
+        self.rasterize.aggr_texture_type = texture_type
         if MSAA:
             self.rasterize.image_size = int(self.image_size * 2)
         image = self.rasterize(face_proj.unsqueeze(0), face_info.unsqueeze(0))
@@ -146,7 +156,7 @@ class Render():
             image = nn.pool(image, 2, "mean", stride=2)
         image = jt.transpose(image.squeeze(0)[:3, :, :], (1, 2, 0))
         self.rasterize.fill_back = self.fill_back
-        self.rasterize.texture_type = self.texture_type
+        self.rasterize.aggr_texture_type = self.texture_type
         return image
 
     def Rasterize_depth(self, face_proj):
@@ -218,7 +228,7 @@ class Render():
                 specular = numerator / jt.clamp(denominator, 0.01) * radiance * shading * with_specular
 
                 color += diffuse * textures + specular * jt.ones_like(textures)
-        
+
         color = self.SSSR(color)
         color = self.SSR(color)
         #color = self.SSAO(color)
@@ -262,13 +272,13 @@ class Render():
             filter_w = jt.ones([7, 7], "float32")/49
             shading = conv_for_image(shading, filter_w, 1)
             imsave("D:\Render\jrender\data\\results\\temp\\lightDepth.jpg", LightDepth)
-            imsave("D:\Render\jrender\data\\results\\temp\\shading.jpg",shading)
+            imsave("D:\Render\jrender\data\\results\\temp\\shading.jpg", shading)
             #LightDepth[LightDepth > self.far] = 0
             #imsave("D:\Render\jrender\data\\results\\temp\\lightDepth.jpg", LightDepth)
             # exit()
 
         # TODO: VSSM
-        elif light.type == "area":      
+        elif light.type == "area":
             proj_to_light_v = self.vp_transform(
                 vertices=self.world_buffer, eye=light.position, camera_direction=light.direction, viewing_angle=light.viewing_angle, perspective=True, camera_mode="look", up=light.up)
             eyeDepth = proj_to_light_v[:, :, 2]
@@ -408,7 +418,7 @@ class Render():
             return self._metallic_roughness_buffer
         if self.metallic_roughness_buffer_update == True or self.MaterialDesc.metallic_roughness_update == True:
             metallic_roughness = self.MRT.metallic_roughness
-            #metallic_roughness = jt.concat([metallic_roughness, jt.ones([
+            # metallic_roughness = jt.concat([metallic_roughness, jt.ones([
             #    metallic_roughness.shape[0], metallic_roughness.shape[1], 1], "float32")], dim=2)
             self._metallic_roughness_buffer = self.Rasterize(
                 self.proj_vertices, metallic_roughness)
@@ -454,7 +464,8 @@ class Render():
         faces_ind_buffer = self.faces_ind_buffer
         width = math.tan(self.viewing_angle/180.*math.pi)
         time1 = time.time()
-        reflect = SSR_cuda_naive2(color, world_buffer, normal_buffer, faces_ind_buffer, ssr_faces, width, self.far, step=1)
+        reflect = SSR_cuda_naive2(color, world_buffer, normal_buffer,
+                                  faces_ind_buffer, ssr_faces, width, self.far, step=1)
         reflect = FXAA_cuda(reflect)
         time2 = time.time()
         print(time2 - time1)
@@ -468,7 +479,7 @@ class Render():
                 i = self.GeometryDesc.name_dic[obj.material_name]
                 ssr_faces += self.GeometryDesc.obj_faces[f"{i}"]
         if len(ssr_faces) == 0:
-            return color        
+            return color
         ssr_faces = jt.array(ssr_faces).int32()
         world_buffer = self.world_buffer
         normal_buffer = self.normal_buffer
@@ -477,29 +488,28 @@ class Render():
         width = math.tan(self.viewing_angle/180.*math.pi)
         time1 = time.time()
         reflect = SSSR_cuda(color, world_buffer, normal_buffer, roughness_buffer,
-                     faces_ind_buffer, ssr_faces, width, self.far, step=1, level_intersect=0, spp=256)
+                            faces_ind_buffer, ssr_faces, width, self.far, step=1, level_intersect=0, spp=256)
         time2 = time.time()
         print(time2 - time1)
         imsave("D:\Render\jrender\data\\results\\temp\\reflect.bmp", reflect)
         imsave("D:\Render\jrender\data\\results\\temp\\sssr.bmp", color + reflect)
-        reflect = jt.clamp(reflect,0,1).numpy() * 255
+        reflect = jt.clamp(reflect, 0, 1).numpy() * 255
         reflect = numpy.uint8(reflect)
-        reflect = cv2.bilateralFilter(reflect,d=10,sigmaColor=20,sigmaSpace=10)
+        reflect = cv2.bilateralFilter(reflect, d=10, sigmaColor=20, sigmaSpace=10)
         reflect = jt.array(reflect)/255.
         color = color + reflect
-        imsave("D:\Render\jrender\data\\results\\output_render\\SSSR.jpg", color[:,::-1,:])
+        imsave("D:\Render\jrender\data\\results\\output_render\\SSSR.jpg", color[:, ::-1, :])
         #imsave("D:\Render\jrender\data\\results\\temp\\sssr_bl.bmp", out_reflect)
         return color
-        
 
     def SSAO(self, color):
         depth = self.world_buffer[:, :, 2]
         normal_buffer = self.normal_buffer
         faces_ind_buffer = self.faces_ind_buffer
         width = math.tan(self.viewing_angle/180.*math.pi)
-        occlusion =  SSAO_cuda(depth, faces_ind_buffer, normal_buffer, width, sample_num=1024, sample_range_r=0.45)
+        occlusion = SSAO_cuda(depth, faces_ind_buffer, normal_buffer, width, sample_num=1024, sample_range_r=0.45)
         ambient = 1 - occlusion
-        imsave("D:\Render\jrender\data\\results\\temp\\ambient.jpg", ambient[:,::-1])
+        imsave("D:\Render\jrender\data\\results\\temp\\ambient.jpg", ambient[:, ::-1])
         filter_w = jt.ones([5, 5], "float32")/25
         occlusion = conv_for_image(occlusion, filter_w, 0)
         color *= ambient.unsqueeze(2)
@@ -513,4 +523,3 @@ class Render():
         color = SSDO_cuda(color, depth, faces_ind_buffer, normal_buffer, width, sample_num=1024, sample_range_r=0.3)
         #imsave("D:\Render\jrender\data\\results\\temp\\rand.jpg", color)
         return color
-

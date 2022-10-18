@@ -20,7 +20,7 @@ class Renderer(nn.Module):
                  light_mode='surface',
                  light_intensity_ambient=0.5, light_color_ambient=[1,1,1],
                  light_intensity_directionals=0.5, light_color_directionals=[1,1,1],
-                 light_directions=[0,1,0], dr_type='softras', Gbuffer='None', bin_size=0, max_elems_per_bin=0):
+                 light_directions=[0,1,0], dr_type='softras', Gbuffer='None', bin_size=0, max_elems_per_bin=0, max_faces_per_pixel_for_grad=16):
         super(Renderer, self).__init__()
         # camera
         self.transform = Transform(camera_mode, 
@@ -40,7 +40,8 @@ class Renderer(nn.Module):
                                             anti_aliasing, fill_back, eps,
                                             sigma_val, dist_func, dist_eps,
                                             gamma_val, aggr_func_rgb, aggr_func_alpha,
-                                            texture_type, bin_size, max_elems_per_bin)
+                                            texture_type, bin_size, max_elems_per_bin,
+                                            max_faces_per_pixel_for_grad)
         elif dr_type == 'n3mr':
             self.rasterizer = N3mrRasterizer(image_size, anti_aliasing, background_color, fill_back)
         else:

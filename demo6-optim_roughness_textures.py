@@ -43,7 +43,7 @@ class Model(nn.Module):
 
 def make_gif(filename):
     with imageio.get_writer(filename, mode='I') as writer:
-        for filename in sorted(glob.glob('/tmp/_tmp_*.png')):
+        for filename in sorted(glob.glob('./tmp/_tmp_*.png')):
             writer.append_data(imageio.imread(filename))
             os.remove(filename)
     writer.close()
@@ -70,7 +70,7 @@ def main():
         model.renderer.transform.set_eyes_from_angles(2.732, 30, 140)
         images = model.renderer(model.vertices, model.faces, model.textures, metallic_textures=model.metallic_textures, roughness_textures=model.roughness_textures)
         image = images.numpy()[0].transpose((1, 2, 0))
-        imsave('/tmp/_tmp_%04d.png' % num, image)
+        imsave('./tmp/_tmp_%04d.png' % num, image)
 
     make_gif(os.path.join(args.filename_output, 'result.gif'))
 

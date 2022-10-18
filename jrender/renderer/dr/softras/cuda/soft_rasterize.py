@@ -157,8 +157,8 @@ namespace{
     __device__ __forceinline__ scalar_t forward_sample_texture(const scalar_t *texture, const scalar_t *w, const int R, const int k, const int texture_sample_type, const scalar_t* face, const scalar_t z) {
         scalar_t texture_k;
         if (texture_sample_type == 0) { // sample surface color with resolution as R
-            const int w_x = w[0] * R;
-            const int w_y = w[1] * R;
+            const int w_x = min(w[0] * R, float(R-1));
+            const int w_y = min(w[1] * R, float(R-1));
             if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
                 texture_k = texture[(w_y * R + w_x) * 3 + k];
             } else {
@@ -166,7 +166,7 @@ namespace{
             }
         } else
         if (texture_sample_type == 1) { // sample vertex color
-            texture_k = w[0] * texture[k] / face[2] + w[1] * texture[3+k] / face[5] + w[2] * texture[6+k] / face[8];
+            texture_k = w[0] * texture[k] / face[2] + w[1] * texture[3 + k] / face[5] + w[2] * texture[6 + k] / face[8];
             texture_k *= z;
         }
         return texture_k;
@@ -409,6 +409,11 @@ namespace{
                     for (int k = 0; k < 3; k++) {
                         const scalar_t color_k = forward_sample_texture(texture, w_clip, texture_res, k, texture_sample_type, face, zp);
                         soft_color[k] = exp_delta_zp * soft_color[k] + exp_z * soft_fragment * color_k;// * soft_fragment;
+                        if(isnan(color_k)){
+                            //printf("color_k: %f exp_z: %f soft_color: %f\\n",color_k,exp_z,soft_color[k]);
+                            //printf("%f %f %f\\n",w_clip[0],w_clip[1],w_clip[2]);
+                            //printf("zp: %f\\n",zp);
+                        }
                     }
                 }
             }
@@ -439,6 +444,8 @@ namespace{
         if (func_id_rgb == 1) {
             for (int k = 0; k < 3; k++) {
                 soft_colors[(bn * 4 + k) * (is * is) + pn] = soft_color[k] / softmax_sum;
+                if(isnan(soft_color[k]))
+                printf("i: %d xi: %d yi: %d soft_color: %f\\n",i,xi,yi,soft_color[k]);
             }
             aggrs_info[(bn * 2 + 0) * (is * is) + pn] = softmax_sum;
             aggrs_info[(bn * 2 + 1) * (is * is) + pn] = softmax_max;
@@ -703,8 +710,8 @@ template <typename scalar_t>
 __device__ __forceinline__ scalar_t forward_sample_texture(const scalar_t *texture, const scalar_t *w, const int R, const int k, const int texture_sample_type) {
     scalar_t texture_k;
     if (texture_sample_type == 0) { // sample surface color with resolution as R
-        const int w_x = w[0] * R;
-        const int w_y = w[1] * R;
+        const int w_x = min(w[0] * R, float(R-1));
+        const int w_y = min(w[1] * R, float(R-1));
         if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
             texture_k = texture[(w_y * R + w_x) * 3 + k];
         } else {
@@ -722,8 +729,8 @@ template <typename scalar_t>
 __device__ __forceinline__ scalar_t backward_sample_texture(const scalar_t grad_color, const scalar_t *w, const int R, const int k, const int texture_sample_type) {
     scalar_t grad_texture_k;
     if (texture_sample_type == 0) { // sample surface color with resolution as R
-        const int w_x = w[0] * R;
-        const int w_y = w[1] * R;
+        const int w_x = min(w[0] * R, float(R-1));
+        const int w_y = min(w[1] * R, float(R-1));
         if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
             if (k == w_y * R + w_x) {
                 grad_texture_k = grad_color;
@@ -1163,8 +1170,8 @@ template <typename scalar_t>
 __device__ __forceinline__ scalar_t forward_sample_texture(const scalar_t *texture, const scalar_t *w, const int R, const int k, const int texture_sample_type) {
     scalar_t texture_k;
     if (texture_sample_type == 0) { // sample surface color with resolution as R
-        const int w_x = w[0] * R;
-        const int w_y = w[1] * R;
+        const int w_x = min(w[0] * R, float(R-1));
+        const int w_y = min(w[1] * R, float(R-1));
         if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
             texture_k = texture[(w_y * R + w_x) * 3 + k];
         } else {
@@ -1182,8 +1189,8 @@ template <typename scalar_t>
 __device__ __forceinline__ scalar_t backward_sample_texture(const scalar_t grad_color, const scalar_t *w, const int R, const int k, const int texture_sample_type) {
     scalar_t grad_texture_k;
     if (texture_sample_type == 0) { // sample surface color with resolution as R
-        const int w_x = w[0] * R;
-        const int w_y = w[1] * R;
+        const int w_x = min(w[0] * R, float(R-1));
+        const int w_y = min(w[1] * R, float(R-1));
         if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
             if (k == w_y * R + w_x) {
                 grad_texture_k = grad_color;

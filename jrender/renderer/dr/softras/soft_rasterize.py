@@ -12,7 +12,7 @@ class SoftRasterizeFunction(Function):
                 fill_back=True, eps=1e-3,
                 sigma_val=1e-5, dist_func='euclidean', dist_eps=1e-4,
                 gamma_val=1e-4, aggr_func_rgb='softmax', aggr_func_alpha='prod',
-                texture_type='surface', bin_size = 0, max_elems_per_bin = 0, max_faces_id = 64):
+                texture_type='surface', bin_size = 0, max_elems_per_bin = 0, max_faces_per_pixel_for_grad = 16):
 
         self.image_size = image_size
         self.background_color = background_color
@@ -29,7 +29,7 @@ class SoftRasterizeFunction(Function):
         self.aggr_texture_type = texture_type
         self.bin_size = bin_size
         self.max_elems_per_bin = max_elems_per_bin
-        self.max_faces_id = max_faces_id
+        self.max_faces_id = max_faces_per_pixel_for_grad
 
     def execute(self, face_vertices, textures):
 
@@ -138,10 +138,11 @@ def soft_rasterize(face_vertices, textures, image_size=256,
                    fill_back=True, eps=1e-3,
                    sigma_val=1e-5, dist_func='euclidean', dist_eps=1e-4,
                    gamma_val=1e-4, aggr_func_rgb='softmax', aggr_func_alpha='prod',
-                   texture_type='surface', bin_size = 0, max_elems_per_bin = 0):
+                   texture_type='surface', bin_size=0, max_elems_per_bin=0, max_faces_per_pixel_for_grad=16):
     return SoftRasterizeFunction(image_size, 
                                 background_color, near, far,
                                 fill_back, eps,
                                 sigma_val, dist_func, dist_eps,
                                 gamma_val, aggr_func_rgb, aggr_func_alpha, 
-                                texture_type, bin_size, max_elems_per_bin)(face_vertices, textures)
+                                texture_type, bin_size, max_elems_per_bin,
+                                max_faces_per_pixel_for_grad)(face_vertices, textures)

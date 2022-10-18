@@ -424,8 +424,8 @@ namespace {
 	__device__ __forceinline__ scalar_t forward_sample_texture(const scalar_t* texture, const scalar_t* w, const int R, const int k, const int texture_sample_type) {
 		scalar_t texture_k;
 		if (texture_sample_type == 0) { // sample surface color with resolution as R
-			const int w_x = w[0] * R;
-			const int w_y = w[1] * R;
+            const int w_x = min(w[0] * R, float(R-1));
+            const int w_y = min(w[1] * R, float(R-1));
 			if ((w[0] + w[1]) * R - w_x - w_y <= 1) {
 				texture_k = texture[(w_y * R + w_x) * 3 + k];
 			}

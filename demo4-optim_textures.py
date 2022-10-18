@@ -26,7 +26,7 @@ class Model(nn.Module):
         self.faces = self.template_mesh.faces.stop_grad()
         # self.textures = self.template_mesh.textures
         texture_size = 4
-        self.textures = jt.zeros((1, self.faces.shape[1], texture_size, texture_size, texture_size, 3)).float32()
+        self.textures = jt.ones((1, self.faces.shape[1], texture_size * texture_size, 3)).float32()
 
         # load reference image
         self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
@@ -44,7 +44,7 @@ class Model(nn.Module):
 
 def make_gif(filename):
     with imageio.get_writer(filename, mode='I') as writer:
-        for filename in sorted(glob.glob('/tmp/_tmp_*.png')):
+        for filename in sorted(glob.glob('./tmp/_tmp_*.png')):
             writer.append_data(imageio.imread(filename))
             os.remove(filename)
     writer.close()
@@ -61,8 +61,8 @@ def main():
 
     model = Model(args.filename_obj, args.filename_ref)
 
-    optimizer = nn.Adam([model.textures], lr=0.1, betas=(0.5,0.999))
-    loop = tqdm.tqdm(range(300))
+    optimizer = nn.Adam([model.textures], lr=0.03, betas=(0.5,0.999))
+    loop = tqdm.tqdm(range(1000))
     for num in loop:
         loop.set_description('Optimizing')
         loss = model()

@@ -62,7 +62,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     model = Model(args.template_mesh)
 
-    renderer = jr.Renderer(image_size=64, sigma_val=1e-4, aggr_func_rgb='hard', camera_mode='look_at', viewing_angle=15, dr_type='softras', bin_size=16, max_elems_per_bin=2700)
+    renderer = jr.Renderer(image_size=64, sigma_val=1e-4, aggr_func_rgb='hard', camera_mode='look_at', viewing_angle=15, dr_type='softras', bin_size=16, max_elems_per_bin=2700, max_faces_per_pixel_for_grad=16)
 
     # read training images and camera poses
     images = np.load(args.filename_input).astype('float32') / 255.

@@ -11,7 +11,7 @@ class SoftRasterizer(nn.Module):
                  sigma_val=1e-5, dist_func='euclidean', dist_eps=1e-4,
                  gamma_val=1e-4, aggr_func_rgb='softmax', aggr_func_alpha='prod',
                  texture_type='surface',
-                 bin_size = 0, max_elems_per_bin = 0):
+                 bin_size = 0, max_elems_per_bin = 0, max_faces_per_pixel_for_grad=16):
         super(SoftRasterizer, self).__init__()
 
         if dist_func not in ['hard', 'euclidean', 'barycentric']:
@@ -39,6 +39,7 @@ class SoftRasterizer(nn.Module):
         self.texture_type = texture_type
         self.bin_size = bin_size
         self.max_elems_per_bin = max_elems_per_bin
+        self.max_faces_per_pixel_for_grad = max_faces_per_pixel_for_grad
 
     def execute(self, mesh, mode=None):
         image_size = self.image_size * (2 if self.anti_aliasing else 1)
@@ -47,7 +48,8 @@ class SoftRasterizer(nn.Module):
                                     self.fill_back, self.eps,
                                     self.sigma_val, self.dist_func, self.dist_eps,
                                     self.gamma_val, self.aggr_func_rgb, self.aggr_func_alpha,
-                                    self.texture_type, self.bin_size, self.max_elems_per_bin)
+                                    self.texture_type, self.bin_size, self.max_elems_per_bin,
+                                    self.max_faces_per_pixel_for_grad)
 
         if self.anti_aliasing:
             images = nn.pool(images, 2, "mean", stride=2)

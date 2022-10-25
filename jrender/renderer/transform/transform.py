@@ -87,7 +87,7 @@ class Transform(nn.Module):
         if self.camera_mode == 'projection':
             self.transformer = Projection(K, R, t, dist_coeffs, orig_size)
         elif self.camera_mode == 'look':
-            self.transformer = Look(perspective, viewing_angle, viewing_scale, eye, camera_direction)
+            self.transformer = Look(camera_direction, perspective, viewing_angle, viewing_scale, eye)
         elif self.camera_mode == 'look_at':
             self.transformer = LookAt(perspective, viewing_angle, viewing_scale, eye)
         else:

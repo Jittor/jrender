@@ -15,12 +15,14 @@ def look(vertices, eye, direction=[0, 1, 0], up=None):
 
     if up is None:
         up = jt.array([0, 1, 0]).float32()
+
+    batch_size = vertices.shape[0]
     if len(eye.shape) == 1:
-        eye = eye.unsqueeze(0)
+        eye = eye.broadcast([batch_size] + eye.shape)
     if len(direction.shape) == 1:
-        direction = direction.unsqueeze(0)
+        direction = direction.broadcast([batch_size] + direction.shape)
     if len(up.shape) == 1:
-        up = up.unsqueeze(0)
+        up = up.broadcast([batch_size] + up.shape)
 
     # create new axes
     z_axis = jt.normalize(direction, eps=1e-5)

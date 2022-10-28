@@ -21,18 +21,19 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         # set template mesh
-        self.template_mesh = jr.Mesh.from_obj(filename_obj, dr_type='softras')
+        self.template_mesh = jr.Mesh.from_obj(filename_obj, dr_type='n3mr',load_texture=True)
         self.vertices = (self.template_mesh.vertices * 0.6).stop_grad()
         self.faces = self.template_mesh.faces.stop_grad()
         # self.textures = self.template_mesh.textures
         texture_size = 4
-        self.textures = jt.ones((1, self.faces.shape[1], texture_size * texture_size, 3)).float32()
+        #self.textures = jt.ones((1, self.faces.shape[1], texture_size * texture_size, 3)).float32()
+        self.textures = jt.ones((1, self.faces.shape[1], texture_size , texture_size, texture_size,3)).float32()
 
         # load reference image
         self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
 
         # setup renderer
-        self.renderer = jr.Renderer(camera_mode='look_at', perspective=False, light_intensity_directionals=0.0, light_intensity_ambient=1.0, dr_type='softras')
+        self.renderer = jr.Renderer(camera_mode='look_at', perspective=False, light_intensity_directionals=0.0, light_intensity_ambient=1.0, dr_type='n3mr')
 
     def execute(self):
         num = np.random.uniform(0, 360)

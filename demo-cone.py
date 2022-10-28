@@ -21,7 +21,7 @@ def main():
         default=os.path.join(data_dir, 'results/output_render'))
     args = parser.parse_args()
     #TODO:light area 
-    render = Render(image_size=2048,camera_mode="look",eye=[-3.5,2.5,2.5],camera_direction=[1.2,-1.2,-1],near=0.5,bin_size=128,max_elems_per_bin=8192)
+    render = Render(image_size=4096,camera_mode="look",eye=[-3.5,2.5,2.5],camera_direction=[1.2,-1.2,-1],near=0.5,bin_size=0,max_elems_per_bin=8192)
     files_name = [os.path.join(args.filename_input, filename) for filename in os.listdir(args.filename_input)]
     scene = Scene.load_scene_from_obj(files_name)
     light1 = Light(position=[0,3.5,-2],direction=[0,-1,0],intensity=1.5,type="point",shadow=True,up=[0,0,1],view_angle=45)

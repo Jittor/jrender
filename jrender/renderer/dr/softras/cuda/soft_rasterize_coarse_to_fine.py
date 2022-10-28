@@ -14,7 +14,7 @@ def forward_soft_rasterize_coarse_to_fine(face_vertices, textures,
     bin_size, max_elems_per_bin):
     blur_radius = 0.01
     num_bins_edge = ceil(image_size / bin_size)
-    if num_bins_edge > 25:
+    if num_bins_edge > 27:
         raise ValueError("forward_soft_rasterize_coarse_to_fine got num_bins_edge, that's too many, try to enlarge the bin_size")
     return jt.code([faces_info.shape, aggrs_info.shape, soft_colors.shape, faces_id_buffer.shape], [faces_info.dtype, aggrs_info.dtype, soft_colors.dtype, faces_id_buffer.dtype],
     [face_vertices, textures],
@@ -27,7 +27,7 @@ def forward_soft_rasterize_coarse_to_fine(face_vertices, textures,
 #include <sm_32_atomic_functions.h>
 
 #define kEpsilon 1e-8
-#define kMaxPointsPerPixel 128
+#define kMaxPointsPerPixel 64
 
 class BitMask {
 public:

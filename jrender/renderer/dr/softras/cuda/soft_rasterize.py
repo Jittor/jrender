@@ -13,7 +13,7 @@ def forward_soft_rasterize(face_vertices, textures,
     #include <cuda.h>
     #include <cuda_runtime.h>
 
-#define kMaxPointsPerPixel 128
+#define kMaxPointsPerPixel 64
 
 namespace{
 

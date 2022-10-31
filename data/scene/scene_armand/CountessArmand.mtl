@@ -1,0 +1,30 @@
+newmtl Solid
+Ka 1.0 1.0 1.0
+Kd 1.0 1.0 1.0
+Ks 0.0 0.0 0.0
+d 1.0
+Ns 0.0
+illum 0
+
+newmtl CountessArmand1
+Ka 1.0 1.0 1.0
+Kd 0.93 0.91 0.92
+Ks 0.0 0.0 0.0
+d 1.0
+Ns 0.0
+illum 0
+#map_Kd CountessArmand.jpg
+#map_Bump CountessArmand_normal.jpg
+#map_ao CountessArmand_occlusion.jpg
+
+newmtl CountessArmand2
+Ka 1.0 1.0 1.0
+Kd 0.93 0.91 0.92
+Ks 0.0 0.0 0.0
+d 1.0
+Ns 0.0
+illum 0
+#map_Kd CountessArmand.jpg
+#map_Bump CountessArmand_normal.jpg
+#map_ao CountessArmand_occlusion.jpg
+

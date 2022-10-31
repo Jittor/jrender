@@ -85,7 +85,7 @@ def directional_lighting(diffuseLight, specularLight, normals, light_intensity=0
     #Microfacet model
     if with_specular and (eye is not None) and (positions is not None) and (metallic_textures is not None) and (roughness_textures is not None):
         N = normals
-        if len(normals.shape)==4 :
+        if len(normals.shape) == 4:
             if len(eye.shape) == 2:
                 eye = eye.unsqueeze(1).unsqueeze(2)
             V = jt.normalize(eye - positions,dim=3)

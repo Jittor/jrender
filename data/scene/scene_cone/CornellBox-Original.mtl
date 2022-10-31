@@ -1,0 +1,68 @@
+# The original Cornell Box in OBJ format.
+# Note that the real box is not a perfect cube, so
+# the faces are imperfect in this data set.
+#
+# Created by Guedis Cardenas and Morgan McGuire at Williams College, 2011
+# Released into the Public Domain.
+#
+# http://graphics.cs.williams.edu/data
+# http://www.graphics.cornell.edu/online/box/data.html
+#
+
+newmtl floor
+  Ns 10.0000
+  Ni 1.0000
+  illum 2
+  Ka 0.725 0.71 0.68 # White
+  Kd 0.5 0.5 0.5
+  Ks 0 0 0
+  Ke 0 0 0
+
+
+newmtl cone1
+  Ns 10.0000
+  Ni 1.0000
+  illum 2
+  Ka 0.78 0.78 0.78 # White
+  Kd 0.94 0.93 0.93
+  Ks 0 0 0
+  Ke 17 12 4
+  
+
+newmtl cone2
+  Ns 10.0000
+  Ni 1.0000
+  illum 2
+  Ka 0.78 0.78 0.78 # White
+  Kd 0.94 0.93 0.93
+  Ks 0 0 0
+  Ke 17 12 4
+
+
+newmtl cone3
+  Ns 10.0000
+  Ni 1.0000
+  illum 2
+  Ka 0.78 0.78 0.78 # White
+  Kd 0.94 0.93 0.93
+  Ks 0 0 0
+  Ke 17 12 4
+  
+
+newmtl cone4
+  Ns 10.0000
+  Ni 1.0000
+  illum 2
+  Ka 0.78 0.78 0.78 # White
+  Kd 0.94 0.93 0.93
+  Ks 0 0 0
+  Ke 17 12 4
+
+newmtl cone5
+  Ns 10.0000
+  Ni 1.0000
+  illum 2
+  Ka 0.78 0.78 0.78 # White
+  Kd 0.94 0.93 0.93
+  Ks 0 0 0
+  Ke 17 12 4

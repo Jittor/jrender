@@ -1,0 +1,4 @@
+newmtl material_0
+#map_bump -bm 0.001 bump-lowRes.png
+#map_bump -bm 0.02 bump.png
+map_normal -normal * OIP-C.jpg

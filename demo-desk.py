@@ -30,8 +30,8 @@ def main():
     render = Render(image_size=2048,camera_mode="look",eye=[-1.75 * 0.9,1.2 * 0.9,2 * 0.9],camera_direction=[0.98,-0.7,-1.2],near=0.5)
     files_name = [os.path.join(args.filename_input, filename) for filename in os.listdir(args.filename_input)]
     scene = Scene.load_scene_from_obj(files_name)
-    light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.35,type="point",shadow=False,view_angle=50,up=[0,0,1])
-    #light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.5,type="area",area = 0.01,shadow=True,view_angle=50,up=[0,0,1])
+    #light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.35,type="point",shadow=False,view_angle=50,up=[0,0,1])
+    light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.5,type="area",shadow=True,view_angle=50,up=[0,0,1])
     light2 = Light(intensity=0.6,type="ambient")
     scene.set_specular(1,False)
     scene.append_light([light1,light2])

@@ -84,7 +84,7 @@ class SoftRasterizeFunction(Function):
         else:
             if self.max_elems_per_bin == 0:
                 num_faces = face_vertices.shape[1]
-                max_elems_per_bin = int(pow(2,ceil(log2(num_faces)) - 1))
+                max_elems_per_bin = int(num_faces/5)
             # TODO: soft_colors do not init in cuda
             else:
                 max_elems_per_bin = self.max_elems_per_bin

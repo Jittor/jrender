@@ -26,7 +26,6 @@ class Model(nn.Module):
         self.faces = self.template_mesh.faces.stop_grad()
         # self.textures = self.template_mesh.textures
         texture_size = 4
-        #self.textures = jt.ones((1, self.faces.shape[1], texture_size * texture_size, 3)).float32()
         self.textures = jt.ones((1, self.faces.shape[1], texture_size , texture_size, texture_size,3)).float32()
 
         # load reference image

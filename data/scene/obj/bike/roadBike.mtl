@@ -1,0 +1,80 @@
+newmtl BodyPaint1_SG
+illum 4
+Kd 0.92 0.95 0.96
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.10 0.10 0.100
+Ns 50
+newmtl CableGray1_SG
+illum 4
+Kd 0.46 0.46 0.46
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.0 0.0 0.0
+Ns 18.00
+newmtl GlossBlack_SG
+illum 4
+Kd 0.06 0.06 0.06
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.5 0.5 0.5
+Ns 60
+newmtl GlossWhite_SG
+illum 4
+Kd 0.96 0.96 0.96
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.71 0.71 0.71
+Ns 50
+newmtl MatBlack_SG
+illum 4
+Kd 0.10 0.10 0.10
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.12 0.12 0.12
+Ns 5.65
+newmtl MatWhite1_SG
+illum 4
+Kd 1.00 1.00 1.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.03 0.03 0.03
+Ns 3.14
+newmtl Silver1_SG
+illum 4
+Kd 0.8 0.8 0.8
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.9 0.9 0.9
+Ns 50
+newmtl Silver2_SG
+illum 4
+Kd 0.27 0.29 0.29
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.85 0.85 0.85
+Ns 100
+newmtl TireGom1_SG
+illum 4
+Kd 0.03 0.03 0.03
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.02 0.02 0.02
+Ns 10
+newmtl Wire1_SG
+illum 4
+Kd 0.71 0.71 0.71
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.50 0.50 0.50
+Ns 45.23

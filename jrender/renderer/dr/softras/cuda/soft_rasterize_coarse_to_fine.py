@@ -247,6 +247,7 @@ __global__ void RasterizeCoarseCudaKernel(
                 // to notebook users, but apparent to others. It would be nice to
                 // also have a Python-friendly warning, but it is not obvious
                 // how to do this without slowing down the normal case.
+                /*
                 const char* warning =
                     "Bin size was too small in the coarse rasterization phase. "
                     "This caused an overflow, meaning output may be incomplete. "
@@ -255,6 +256,7 @@ __global__ void RasterizeCoarseCudaKernel(
                     "decreasing bin_size, "
                     "or setting bin_size to 0 to use the naive rasterization.";
                 printf(warning);
+                */
                 continue;
             }
 

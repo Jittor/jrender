@@ -99,10 +99,8 @@ def SSS(diffuseLight, specular, mesh):
         (coords.shape[0], coords.shape[1], coords.shape[2], 1), 1.5)], dim=3)
     Worldcoord_Map = rasterize(coords, worldcoord_textures)
     Worldcoord_Map = jt.transpose(Worldcoord_Map.squeeze(0)[:3, :, :], (1, 2, 0))
-    imsave("D:\Render\jrender\data\\results\\temp2\worldcoord.jpg",Worldcoord_Map)
     irradiance_Map = rasterize(coords, irradiance)
     irradiance_Map = jt.transpose(irradiance_Map.squeeze(0)[:3, :, :], (1, 2, 0))
-    imsave("D:\Render\jrender\data\\results\\temp2\irradiance.jpg",irradiance_Map)
     specular_Map = rasterize(coords, specular)
     specular_Map = jt.transpose(specular_Map.squeeze(0)[:3, :, :], (1, 2, 0))
 
@@ -110,8 +108,6 @@ def SSS(diffuseLight, specular, mesh):
     stretchU, stretchV = computeStretchMap(Worldcoord_Map * 7)
     stretchU = jt.clamp(stretchU, 0.0, 1.0)
     stretchV = jt.clamp(stretchV, 0.0, 1.0)
-    imsave("D:\Render\jrender\data\\results\\temp2\stretchU.jpg",stretchU)
-    imsave("D:\Render\jrender\data\\results\\temp2\stretchV.jpg",stretchV)
     # rgb blur
     Gaussian_basis = [0, 25, 100, 400]
 
@@ -147,11 +143,9 @@ def SSS(diffuseLight, specular, mesh):
         for k, image in enumerate(irradiance_basis_rgb):
             final_map[:, :, j] += Gaussian_weight[j][k]*image
 
-    imsave("D:\Render\jrender\data\\results\\temp2\\blur.jpg",final_map)
 
     final_map *= diffuse_sqrt
     final_map += specular_Map
-    final_map = specular_Map
 
     final_map = final_map[::-1, :, :]
     is_update = jt.ones((mesh.faces.shape[1])).int()

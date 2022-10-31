@@ -173,13 +173,6 @@ __global__ void SSR_cuda_kernel(scalar_t* image,
     int ind;
     int iter = 0;
     scalar_t z = far + 1;
-
-    /*
-    image[i * 3 + 0] = outdir.x;
-    image[i * 3 + 1] = outdir.y;
-    image[i * 3 + 2] = outdir.z;
-    return;
-    */
     
     //if (i == 1510 * 2048 + 1024){
     if (1){ 
@@ -517,9 +510,9 @@ __global__ void SSR_cuda_kernel(
                 if (ray_depth <= z + world_thickness){
                     //draw_point((float*)image,int(next_ray_x),is - int(next_ray_y) - 1,5,is,make_float3(4,0.,0.));
                     int c_ind = ((is - int(next_ray_y) - 1) * is + int(next_ray_x)) * 3;
-                    image[i * 3 + 0] = colors[i * 3 + 0] + colors[c_ind + 0];
-                    image[i * 3 + 1] = colors[i * 3 + 0] + colors[c_ind + 1];
-                    image[i * 3 + 2] = colors[i * 3 + 0] + colors[c_ind + 2];
+                    image[i * 3 + 0] = 0.6 * colors[i * 3 + 0] + 0.4 * colors[c_ind + 0];
+                    image[i * 3 + 1] = 0.6 * colors[i * 3 + 0] + 0.4 * colors[c_ind + 1];
+                    image[i * 3 + 2] = 0.6 * colors[i * 3 + 0] + 0.4 * colors[c_ind + 2];
                 
                 }
                 return;
@@ -804,12 +797,6 @@ __global__ void SSR_cuda_kernel(scalar_t* image,
     int iter = 0;
     scalar_t z = far + 1;
 
-    /*
-    image[i * 3 + 0] = outdir.x;
-    image[i * 3 + 1] = outdir.y;
-    image[i * 3 + 2] = outdir.z;
-    return;
-    */
     ray_x += step_x;
     ray_y += step_y;
     

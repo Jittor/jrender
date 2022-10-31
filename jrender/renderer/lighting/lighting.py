@@ -146,7 +146,6 @@ def SSS(diffuseLight, specular, mesh):
 
     final_map *= diffuse_sqrt
     final_map += specular_Map
-    final_map = specular_Map
 
     final_map = final_map[::-1, :, :]
     is_update = jt.ones((mesh.faces.shape[1])).int()

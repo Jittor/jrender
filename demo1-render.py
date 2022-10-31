@@ -23,9 +23,9 @@ def main():
     azimuth = 0
 
     # load from Wavefront .obj file
-    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5, texture_type='surface', dr_type='n3mr')
+    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5, texture_type='surface', dr_type='softras')
     # create renderer with SoftRas
-    renderer = jr.Renderer(dr_type='n3mr')
+    renderer = jr.Renderer(dr_type='softras')
 
     os.makedirs(args.output_dir, exist_ok=True)
 

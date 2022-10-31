@@ -33,7 +33,7 @@ def pose_spherical(theta, phi, radius):
     return c2w
 
 
-def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_intrinsic = False):
+def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_pose_normalization=False, target_radius=1.0, do_intrinsic = False):
     if half_res and factor==1:
         factor=2
     splits = ['train', 'val', 'test']
@@ -73,6 +73,9 @@ def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_intrinsi
     
     imgs = np.concatenate(all_imgs, 0)
     poses = np.concatenate(all_poses, 0)
+
+    if do_pose_normalization:
+        poses = normalize_pose(poses, target_radius)
     
     H, W = imgs[0].shape[:2]
     camera_angle_x = float(meta['camera_angle_x'])
@@ -105,3 +108,17 @@ def load_blender_data(basedir, half_res=False, testskip=1, factor=1, do_intrinsi
         return imgs, poses, render_poses, [H, W, focal], i_split
 
 
+def normalize_pose(all_poses, target_radius):
+    cam_position = all_poses[..., :3, 3] # [num, 3]
+    avg_cam_position = np.mean(cam_position, axis=0, keepdims=True)
+    dist_to_avg = np.linalg.norm(cam_position - avg_cam_position, axis=1, keepdims=True)
+    max_dist = np.max(dist_to_avg)
+
+    radius = max_dist
+    translate = -avg_cam_position
+    scale = target_radius / radius
+
+    normalized_cam_position = (cam_position + translate) * scale
+    all_poses[..., :3, 3] = normalized_cam_position
+
+    return all_poses

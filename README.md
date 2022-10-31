@@ -44,16 +44,14 @@
     - [基础教程5：优化金属度贴图](#基础教程5优化金属度贴图)
     - [基础教程6：优化粗糙度贴图](#基础教程6优化粗糙度贴图)
   - [进阶教程](#进阶教程-1)
-    - [进阶教程1：ShapeNet数据集三维重建](#进阶教程1shapenet数据集三维重建)
-    - [进阶教程2：人脸重建](#进阶教程2人脸重建)
-    - [进阶教程3：NERF](#进阶教程3nerf)
+    - [进阶教程1：人脸重建](#进阶教程1人脸重建)
+    - [进阶教程2：NERF](#进阶教程2nerf)
   - [Citation](#citation)
 
 ## 进阶教程
 
-* [进阶教程1：ShapeNet数据集三维重建](#进阶教程1：ShapeNet数据集三维重建)
-* [进阶教程2：人脸重建](#进阶教程2：人脸重建)
-* [进阶教程3：NERF](#进阶教程3：NERF)
+* [进阶教程1：人脸重建](#进阶教程1：人脸重建)
+* [进阶教程2：NERF](#进阶教程2：NERF)
 
 ## 使用
 
@@ -111,6 +109,22 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 
 
 如果您的训练速度，占用显存或训练效果与我们的数据明显不符，请随时联系我们解决，我们的比赛QQ群号为：1018591346。
+
+
+该赛题可以从多方面进行思考，包括相机位姿、训练方式和网络结构等，我们给出如下简单的修改示例，具体修改内容见```configs/Easyship-improved.txt```：
+
+
+* 归一化训练位姿
+* 加权采样训练像素
+* 网络输入增加采样点深度
+
+
+50000次迭代后测试结果对比，其中右图为改进后结果：
+
+<p align="left">
+<img src="data/imgs/easyship-origin.png" width="200" \>
+<img src="data/imgs/easyship-improved.png" width="200" style="padding-left: 25px;" \>
+</p>
 
 
 ## 速度对比
@@ -193,11 +207,6 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 
 渲染的人体皮肤的次表面散射结果如下，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo1.5-SSS.py)。
 
-未使用SSS
-<p align="left">
-<img src="data/results/output_render/noSSS_1.jpg" width="200" \>
-<img src="data/results/output_render/noSSS_2.jpg" width="200" style="padding-left: 25px;" \>
-</p>
 使用SSS
 <p align="left">
 <img src="data/results/output_render/withSSS_1.jpg" width="200" \>
@@ -429,15 +438,11 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 
 ## 进阶教程
 
-### 进阶教程1：ShapeNet数据集三维重建
-
-我们使用JRender对ShapeNet数据集进行了三维重建，模型的训练速度是PyTorch的1.22倍。参见[详细代码](https://github.com/Jittor/shapenet-reconstruction-jittor)。
-
-### 进阶教程2：人脸重建
+### 进阶教程1：人脸重建
 
 我们在JRender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
 
-### 进阶教程3：NERF
+### 进阶教程2：NERF
 
 Jrender 2.0版本新推出了Volume Rendering功能，基于该新特性，我们复现了发表于ECCV 2020的NERF，该论文利用神经辐射场表示场景，对合成场景及真实场景都可恢复到真实感渲染级效果。
 
@@ -466,7 +471,7 @@ python nerf.py --config configs/lego.txt
 </p>
 
 
-基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是Pytorch-Nerf(bdb012e)版本的1.92-2.27倍。
+基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是NeRF官方版本的1.4倍。
 
 
 ## Citation

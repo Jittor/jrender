@@ -16,10 +16,6 @@ def main():
     parser.add_argument('-o', '--output-dir', type=str, 
         default=os.path.join(data_dir, 'results/output_render'))
     args = parser.parse_args()
-    # other settings
-    camera_distance = 1.8
-    elevation = 20
-    azimuth = 45
 
     # load from Wavefront .obj file
     mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=15, texture_type='surface', dr_type='softras',normalization=True,with_SSS = True)

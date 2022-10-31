@@ -21,18 +21,18 @@ class Model(nn.Module):
         super(Model, self).__init__()
 
         # set template mesh
-        self.template_mesh = jr.Mesh.from_obj(filename_obj, dr_type='softras')
+        self.template_mesh = jr.Mesh.from_obj(filename_obj, dr_type='n3mr',load_texture=True)
         self.vertices = (self.template_mesh.vertices * 0.6).stop_grad()
         self.faces = self.template_mesh.faces.stop_grad()
         # self.textures = self.template_mesh.textures
         texture_size = 4
-        self.textures = jt.zeros((1, self.faces.shape[1], texture_size, texture_size, texture_size, 3)).float32()
+        self.textures = jt.ones((1, self.faces.shape[1], texture_size , texture_size, texture_size,3)).float32()
 
         # load reference image
         self.image_ref = jt.array(imread(filename_ref).astype('float32') / 255.).permute(2,0,1).unsqueeze(0).stop_grad()
 
         # setup renderer
-        self.renderer = jr.Renderer(camera_mode='look_at', perspective=False, light_intensity_directionals=0.0, light_intensity_ambient=1.0, dr_type='softras')
+        self.renderer = jr.Renderer(camera_mode='look_at', perspective=False, light_intensity_directionals=0.0, light_intensity_ambient=1.0, dr_type='n3mr')
 
     def execute(self):
         num = np.random.uniform(0, 360)
@@ -44,7 +44,7 @@ class Model(nn.Module):
 
 def make_gif(filename):
     with imageio.get_writer(filename, mode='I') as writer:
-        for filename in sorted(glob.glob('/tmp/_tmp_*.png')):
+        for filename in sorted(glob.glob('./tmp/_tmp_*.png')):
             writer.append_data(imageio.imread(filename))
             os.remove(filename)
     writer.close()
@@ -61,8 +61,8 @@ def main():
 
     model = Model(args.filename_obj, args.filename_ref)
 
-    optimizer = nn.Adam([model.textures], lr=0.1, betas=(0.5,0.999))
-    loop = tqdm.tqdm(range(300))
+    optimizer = nn.Adam([model.textures], lr=0.03, betas=(0.5,0.999))
+    loop = tqdm.tqdm(range(1000))
     for num in loop:
         loop.set_description('Optimizing')
         loss = model()
@@ -75,7 +75,7 @@ def main():
         model.renderer.transform.set_eyes_from_angles(2.732, 0, azimuth)
         images = model.renderer(model.vertices, model.faces, jt.tanh(model.textures))
         image = images.numpy()[0].transpose((1, 2, 0))
-        imsave('/tmp/_tmp_%04d.png' % num, image)
+        imsave('./tmp/_tmp_%04d.png' % num, image)
     make_gif(os.path.join(args.filename_output, 'result.gif'))
 
 

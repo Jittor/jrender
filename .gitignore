@@ -26,6 +26,7 @@ perf.data.old
 
 *.tgz
 
+*.obj
 
 test.py
 

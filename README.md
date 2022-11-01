@@ -213,6 +213,7 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
 <img src="data/results/output_render/withSSS_2.jpg" width="200" style="padding-left: 25px;" \>
 </p>
 
+
 ### 基础教程2：优化模型几何
 
 该教程利用可微渲染器将球形变为飞机。

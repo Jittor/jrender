@@ -3,8 +3,8 @@ from cv2 import imwrite
 import jittor as jt
 import numpy as np
 from skimage.io import imread
-from jrender.structures.utils import faces_vertices
 from .load_textures import _load_textures_for_softras
+from ...Scene.objects.utils.create_TBN import *
 
 def bump_mapToNormal_map(bump_image):
 
@@ -20,10 +20,9 @@ def load_mtl(filename_mtl):
     load normal_map or bump_map from *.mtl 
     '''
     texture_filenames = {}
-    normal_filenames={}
+    normal_filename=""
     colors = {}
     material_name = ''
-    normal_type=""
     with open(filename_mtl) as f:
         for line in f.readlines():
             if len(line.split()) != 0:
@@ -33,13 +32,9 @@ def load_mtl(filename_mtl):
                     texture_filenames[material_name] = line.split()[1]
                 if line.split()[0] == 'Kd':
                     colors[material_name] = np.array(list(map(float, line.split()[1:4])))
-                if line.split()[0]=='map_bump':
-                    normal_type='bump_map'
-                    normal_filenames[normal_type]=(line.split()[3])
                 if line.split()[0]=='map_normal':
-                    normal_type='normal_map'
-                    normal_filenames[normal_type]=(line.split()[3])
-    return colors, texture_filenames, normal_filenames
+                    normal_filename=(line.split()[2])
+    return colors, texture_filenames, normal_filename
 
 
 def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
@@ -52,7 +47,6 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
             continue
         if line.split()[0] == 'vt':
             vertices.append([float(v) for v in line.split()[1:3]])
-    vertices = np.vstack(vertices).astype(np.float32)
 
     # load faces for textures
     faces = []
@@ -81,11 +75,14 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
                 material_names.append(material_name)
         if line.split()[0] == 'usemtl':
             material_name = line.split()[1]
-    faces = np.vstack(faces).astype(np.int32) - 1
-    faces = vertices[faces]                                         #face_texcoords
+    
+    if len(vertices) != 0:
+        vertices = np.vstack(vertices).astype(np.float32)
+        faces = np.vstack(faces).astype(np.int32) - 1
+        faces = vertices[faces]                                         #face_texcoords
     faces = jt.array(faces).float32()
 
-    colors, texture_filenames ,normal_filenames= load_mtl(filename_mtl)
+    colors, texture_filenames ,normal_filename= load_mtl(filename_mtl)
 
     textures = jt.ones((faces.shape[0], texture_res**2, 3), dtype="float32")
     normal_textures = jt.ones((faces.shape[0], texture_res**2, 3), dtype="float32")             
@@ -116,43 +113,24 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
         textures = _load_textures_for_softras(image, faces, textures, is_update)
 
     #load normal
-    if len(normal_filenames) == 0:
+    if normal_filename == "":
         normal_textures=None
         TBN=None
     else:
-        for normal_type,filename_normal in normal_filenames.items():
-            filename_normal = os.path.join(os.path.dirname(filename_obj), filename_normal)
-            image = imread(filename_normal).astype(np.float32) / 255.
-            if(normal_type=='bump_map'):
-                image=bump_mapToNormal_map(image)
-                filename_bumpToNormal=os.path.join(os.path.dirname(filename_obj), 'normal_high.jpg')
-                imwrite(filename_bumpToNormal,np.array(image[:,:,::-1])*255.)
+        filename_normal = os.path.join(os.path.dirname(filename_obj), normal_filename)
+        image = imread(filename_normal).astype(np.float32) / 255.
+        if(len(image.shape)==2):
+            image=bump_mapToNormal_map(image)
+            filename_bumpToNormal=os.path.join(os.path.dirname(filename_obj), 'normal_high.jpg')
+            imwrite(filename_bumpToNormal,np.array(image[:,:,::-1])*255.)
 
-            #create TBN
-            e1=face_vertices[::,0]-face_vertices[::,1]
-            e2=face_vertices[::,0]-face_vertices[::,2]
-            n=jt.normalize(jt.cross(e1,e2).unsqueeze(1),dim=2)
-            u1=(faces[::,0,0]-faces[::,1,0])
-            v1=(faces[::,0,1]-faces[::,1,1])
-            u2=(faces[::,0,0]-faces[::,2,0])
-            v2=(faces[::,0,1]-faces[::,2,1])
-            denom=jt.array(1/(u1*v2-u2*v1)).float32().unsqueeze(1).unsqueeze(2)
-            inverse=jt.array(np.stack((np.stack((v2,-v1),axis=1),np.stack((-u2,u1),axis=1)),axis=1)).float32()
-            e=jt.array(np.stack((e1,e2),axis=1)).float32()
-            TB=jt.matmul(inverse,e)
-            TB=denom*TB
-            T=TB[::,0,::]
-            T=T.unsqueeze(1)
-            T_n=jt.sum(T*n,dim=2).unsqueeze(1)
-            T=T-(T_n*n)
-            T=jt.normalize(T,dim=2)
-            B=jt.normalize(jt.cross(n,T),dim=2)
-            TBN=jt.concat([T,B,n],dim=1)
+        #create TBN
+        TBN = create_TBN(face_texcoords=faces,face_wcoords=face_vertices)
 
-            is_update=jt.ones(len(material_names)).int()
-            image = image[::-1, :, :]
-            normal_textures = _load_textures_for_softras(image,faces,normal_textures,is_update)
-            normal_textures = jt.normalize((normal_textures*2-1),dim=2)
+        is_update=jt.ones(len(material_names)).int()
+        image = image[::-1, :, :]
+        normal_textures = _load_textures_for_softras(image,faces,normal_textures,is_update)
+        normal_textures = jt.normalize((normal_textures*2-1),dim=2)
         
     return textures , normal_textures ,TBN , faces                
 
@@ -198,7 +176,7 @@ def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=
             if line.startswith('mtllib'):
                 filename_mtl = os.path.join(os.path.dirname(filename_obj), line.split()[1])
                 face_vertices=vertices[faces]
-                textures ,normal_textures,TBN ,face_texcoords= load_textures(filename_obj, filename_mtl, texture_res,face_vertices)
+                textures ,normal_textures,TBN ,face_texcoords = load_textures(filename_obj, filename_mtl, texture_res,face_vertices)
         if textures is None:
             raise Exception('Failed to load textures.')
     elif load_texture and texture_type == 'vertex':
@@ -209,6 +187,9 @@ def load_obj(filename_obj, normalization=False, load_texture=False, texture_res=
             if line.split()[0] == 'v':
                 textures.append([float(v) for v in line.split()[4:7]])
         textures = jt.array(np.vstack(textures)).float()
+        normal_textures = None
+        TBN = None
+        face_texcoords = None
     # normalize into a unit cube centered zero
     if normalization:
         vertices -= vertices.min(0)

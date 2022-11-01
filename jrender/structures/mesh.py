@@ -1,3 +1,4 @@
+from ssl import DER_cert_to_PEM_cert
 import numpy as np
 import jittor as jt
 
@@ -86,7 +87,7 @@ class Mesh(object):
                 self._roughness_textures = jt.ones((self.batch_size, self.num_faces, texture_res**2, 1))
             elif self.dr_type == 'n3mr':
                 self._metallic_textures = jt.zeros((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1))
-                self._roughness_textures = jt.ones((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1))
+                self._roughness_textures = jt.ones((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1)) * 0.3
         elif texture_type == 'vertex':
             self._metallic_textures = jt.zeros((self.batch_size, self.num_vertices, 1))
             self._roughness_textures = jt.ones((self.batch_size, self.num_vertices, 1))
@@ -205,7 +206,9 @@ class Mesh(object):
             if self.normal_textures is None:
                 v10 = self.face_vertices[:, :, 0] - self.face_vertices[:, :, 1]
                 v12 = self.face_vertices[:, :, 2] - self.face_vertices[:, :, 1]
-                self._surface_normals = jt.normalize(jt.cross(v12, v10), p=2, dim=2, eps=1e-6)
+                v10 = v10.float64()
+                v12 = v12.float64()
+                self._surface_normals = jt.normalize(jt.cross(v12, v10), p=2, dim=2).float32()
             else:
                 surface_normals=jt.sum(self._normal_textures,dim=2)/self.texture_res**2
                 surface_normals=surface_normals.unsqueeze(2)
@@ -215,7 +218,7 @@ class Mesh(object):
         return self._surface_normals
         
     @property
-    def vertex_normals(self):
+    def vertex_normals(self):                       #没有直接从.obj读取vertex_normals的功能
         if self._vertex_normals_update:
             bs, nv = self.vertices.shape[:2]
             bs, nf = self.faces.shape[:2]
@@ -282,37 +285,35 @@ class Mesh(object):
         '''
         Create a Mesh object from a .obj file
         '''
+        textures = None
+        normal_textures= None
+        face_texcoords = None
+        TBN = None
+
         if load_texture:
             if dr_type == 'softras':
-                vertices, faces, textures ,normal_textures,TBN , face_texcoords= load_obj(filename_obj,
-                                                        normalization=normalization,
-                                                        texture_res=texture_res,
-                                                        load_texture=True,
-                                                        dr_type=dr_type,
-                                                        texture_type=texture_type,
-                                                        texture_wrapping=texture_wrapping, 
-                                                        use_bilinear=use_bilinear)
-            else:
+                vertices, faces, textures ,normal_textures,TBN,face_texcoords= load_obj(filename_obj,
+                                                            normalization=normalization,
+                                                            texture_res=texture_res,
+                                                            load_texture=True,
+                                                            dr_type=dr_type,
+                                                            texture_type=texture_type,
+                                                            texture_wrapping=texture_wrapping, 
+                                                            use_bilinear=use_bilinear)
+            elif dr_type == 'n3mr':
                 vertices, faces, textures = load_obj(filename_obj,
-                                                        normalization=normalization,
-                                                        texture_res=texture_res,
-                                                        load_texture=True,
-                                                        dr_type=dr_type,
-                                                        texture_type=texture_type,
-                                                        texture_wrapping=texture_wrapping, 
-                                                        use_bilinear=use_bilinear)
-                normal_textures= None
-                TBN = None
-                face_texcoords = None
+                                            normalization=normalization,
+                                            texture_res=texture_res,
+                                            load_texture=True,
+                                            dr_type=dr_type,
+                                            texture_type=texture_type,
+                                            texture_wrapping=texture_wrapping, 
+                                            use_bilinear=use_bilinear)
         else:
             vertices, faces = load_obj(filename_obj,
                                     normalization=normalization,
                                     texture_res=texture_res,
                                     load_texture=False, dr_type=dr_type)
-            textures = None
-            normal_textures= None
-            TBN = None
-            face_texcoords= None
         return cls(vertices, faces, textures, texture_res, texture_type, dr_type=dr_type,normal_textures=normal_textures,TBN=TBN,with_SSS=with_SSS,face_texcoords=face_texcoords)
 
     def save_obj(self, filename_obj, save_texture=False, texture_res_out=16):

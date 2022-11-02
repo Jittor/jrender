@@ -11,7 +11,7 @@
 * **Ambient occlusion**
 
 <p align="middle">
-<img src="data/results/output_render/serapis_without_ssao.jpg" width="195" \>
+<img src="data/results/output_render/serapis_without_ssao.jpg" width="200" \>
 <img src="data/results/output_render/serapis_with_ssao.jpg" width="200" style="padding-left: 5px;" \>
 <img src="data/results/output_render/buddha_without_ssao.jpg" width="200" style="padding-left: 5px;" \>
 <img src="data/results/output_render/buddha_with_ssao.jpg" width="200" style="padding-left: 5px;" \>
@@ -22,7 +22,7 @@
 * **Soft Shadow**
 
 <p align="middle">
-<img src="data/results/output_render/cone_hard_shadow.jpg" width="195" \>
+<img src="data/results/output_render/cone_hard_shadow.jpg" width="200" \>
 <img src="data/results/output_render/cone_soft_shadow.jpg" width="200" style="padding-left: 5px;" \>
 <img src="data/results/output_render/desk_hard_shadow.jpg" width="200" style="padding-left: 5px;" \>
 <img src="data/results/output_render/desk_soft_shadow.jpg" width="200" style="padding-left: 5px;" \>
@@ -33,7 +33,7 @@
 * **Global Illumination**
 
   <p align="middle">
-  <img src="data/results/output_render/cornellbox_with_ssr.jpg" width="195" \>
+  <img src="data/results/output_render/cornellbox_with_ssr.jpg" width="200" \>
   <img src="data/results/output_render/cornellbox_with_sssr.jpg" width="200" style="padding-left: 5px;" \>
   <img src="data/results/output_render/bunny_with_ssr.jpg" width="200" style="padding-left: 5px;" \>
   <img src="data/results/output_render/bunny_with_sssr.jpg" width="200" style="padding-left: 5px;" \>
@@ -43,7 +43,7 @@
 * **Subsurface Scattering**
 
 <p align="middle">
-<img src="data/results/output_render/noSSS.jpg" width="195" \>
+<img src="data/results/output_render/noSSS.jpg" width="200" \>
 <img src="data/results/output_render/withSSS.jpg" width="200" style="padding-left: 5px;" \>
 <img src="data/results/output_render/noSSS2.jpg" width="200" style="padding-left: 5px;" \>
 <img src="data/results/output_render/withSSS2.jpg" width="200" style="padding-left: 5px;" \>
@@ -134,36 +134,6 @@ python demo5-optim_metallic_textures.py
 python demo6-optim_roughness_textures.py
 ```
 
-## 速度对比
-
-我们对PyTorch和Jittor渲染一个带有纹理的奶牛以及球形变为飞机做了时间对比测试，测试环境如下。
-
-* cuda: 10.2
-* torch: 1.6.0
-* soft-renderer: 1.0.0
-
-测试结果：
-
-渲染小模型（642顶点）速度对比（渲染1080次）：
-
-|           | JRender渲染时间   | PyTorch渲染时间 | 加速比 |
-|  ----     | ----          | ----  | ----  |
-| N3MR    | 3.56        | 19.45 | 5.46 |
-| Softras   | 3.54      | 5.83  | 1.64 |
-
-渲染大模型（11420顶点）速度对比（渲染1080次）：
-
-|           | JRender渲染时间   | PyTorch渲染时间 | 加速比 |
-|  ----     | ----          | ----  | ----  |
-| N3MR    | 4.99        | 65.07 | 13.04 |
-| Softras   | 12.46        | 18.58 | 1.49 |
-
-|           | 飞机形变优化时间   |
-|  ----     | ----          |
-| Jittor    | 19.58        |
-| PyTorch   | 32.88        |
-| 加速比   | 1.67           |
-
 ## Basic Tutorials
 
 ### Basic Tutorial 1：Rendering objects
@@ -247,8 +217,9 @@ This tutorial use the differentiable renderer to deform sphere to airplane.
 
 The optimization process from sphere to airplane is shown as followed，please refer the [Code](https://github.com/Jittor/jrender/blob/main/demo2-deform.py).
 
+<p align="middle">
 <img src="data/imgs/n3mr-deform.gif" width="200" style="max-width:50%;">
-
+</p>
 
 ### Basic Tutorial 3：Rendering Specular Materials
 
@@ -281,7 +252,9 @@ We implement the PBR shading models based on the microfacet theory in Jrender, w
 
 The rendering results with specular materials are shown as followed, please refer to [Code](https://github.com/Jittor/jrender/blob/main/demo3-render_specular.py).
 
+<p align="middle">
 <img src="data/imgs/specular.gif" width="200" style="max-width:50%;">
+</p>
 
 ### Basic Tutorial 4：Texture Optimization
 

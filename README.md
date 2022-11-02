@@ -17,7 +17,7 @@
 <img src="data/results/output_render/buddha_with_ssao.jpg" width="200" style="padding-left: 5px;" \>
 </p>
 
-​                                Without SSAO                      With SSAO                        Without SSAO                    With SSAO
+Without SSAO                With SSAO                        Without SSAO                    With SSAO
 
 * **Soft Shadow**
 
@@ -70,11 +70,11 @@
 
 * NMR Performance for 1024 * 1024 resolution (including forward rendering + gradients: **ms**)
 
-|              | Small-size Mesh(280) | Middle-size Mesh(3.3k) | Large-size Mesh(39k) |
-| ------------ | :------------------: | :--------------------: | :------------------: |
-| Official NMR |         42.3         |         236.9          |         2581         |
-| Jrender NMR  |         32.1         |          95.7          |        114.7         |
-| **Speedup**  |       **1.3**        |        **2.5**         |       **22.5**       |
+  |              | Small-size Mesh(280) | Middle-size Mesh(3.3k) | Large-size Mesh(39k) |
+  | ------------ | :------------------: | :--------------------: | :------------------: |
+  | Official NMR |         42.3         |         236.9          |         2581         |
+  | Jrender NMR  |         32.1         |          95.7          |        114.7         |
+  | **Speedup**  |       **1.3**        |        **2.5**         |       **22.5**       |
 
 ## Introduction
 
@@ -91,18 +91,18 @@ Main features:
 ## Basic Tutorials
 
 - [Jrender 2.0 (Jittor rendering libary)](#jrender-20-jittor渲染库)
-  - [Basic Tutorials](#Basic Tutorials-1)
-    - [Basic Tutorial 1：Rendering objects](#Basic Tutorials1Rendering objects)
-    - [Basic Tutorial 2：Geometry Optimization](#Basic Tutorial2GeometryOptimization)
-    - [Basic Tutorial 3：Rendering Specular materials](#Basic Tutorial3_Rendering_specular)
-    - [Basic Tutorial 4：Texture Optimization](#Basic Tutorial4_Texture_Optimization)
-    - [Basic Tutorial 5：Metallic Texture Optimization](#Basic Tutorial5_Metallic_Optimization)
-    - [Basic Tutorial 6：Roughness Texture Optimization](#Basic Tutorial6_Roughness_Texture_Optimization)
+  - Basic Tutorials
+    - Basic Tutorial 1：Rendering objects
+    - Basic Tutorial 2：Geometry Optimization
+    - Basic Tutorial 3：Rendering Specular materials
+    - Basic Tutorial 4：Texture Optimization
+    - Basic Tutorial 5：Metallic Texture Optimization
+    - Basic Tutorial 6：Roughness Texture Optimization
 
 ## Advanced Tutorials
 
-* [Advanced Tutorial 1：3D Reconstruction](#Advanced Tutorial 1：3D Reconstruction)
-* [Advanced Tutorial 2：NeRF](#Advanced Tutorial 2：NeRF)
+* Advanced Tutorial 1：3D Reconstruction
+* Advanced Tutorial 2：NeRF
 
 ## Usage
 

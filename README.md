@@ -19,7 +19,8 @@
 <pre>
                   Without SSAO                 With SSAO                 Without SSAO                 With SSAO
 </pre>
-* **Soft Shadow**
+
+**Soft Shadow**
 
 <p align="middle">
 <img src="data/results/output_render/cone_hard_shadow.jpg" width="200" \>
@@ -35,10 +36,10 @@
 * **Global Illumination**
 
   <p align="middle">
-  <img src="data/results/output_render/cornellbox_with_ssr.jpg" width="200" \>
-  <img src="data/results/output_render/cornellbox_with_sssr.jpg" width="200" style="padding-left: 5px;" \>
-  <img src="data/results/output_render/bunny_with_ssr.jpg" width="200" style="padding-left: 5px;" \>
-  <img src="data/results/output_render/bunny_with_sssr.jpg" width="200" style="padding-left: 5px;" \>
+  <img src="data/results/output_render/cornellbox_with_ssr.jpg" width="198" \>
+  <img src="data/results/output_render/cornellbox_with_sssr.jpg" width="198" style="padding-left: 5px;" \>
+  <img src="data/results/output_render/bunny_with_ssr.jpg" width="198" style="padding-left: 5px;" \>
+  <img src="data/results/output_render/bunny_with_sssr.jpg" width="198" style="padding-left: 5px;" \>
   </p>
  
 <pre>

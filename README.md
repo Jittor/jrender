@@ -42,7 +42,7 @@
 </p>
  
 <pre>
-     Mirror Reflection          Glossy Reflection           Mirror Reflection         Glossy Reflection
+   Mirror Reflection          Glossy Reflection           Mirror Reflection         Glossy Reflection
 </pre>
 
 * **Subsurface Scattering**

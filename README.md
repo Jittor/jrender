@@ -16,9 +16,9 @@
 <img src="data/results/output_render/buddha_without_ssao.jpg" width="200" style="padding-left: 5px;" \>
 <img src="data/results/output_render/buddha_with_ssao.jpg" width="200" style="padding-left: 5px;" \>
 </p>
-
-Without SSAO                With SSAO                        Without SSAO                    With SSAO
-
+<pre>
+                  Without SSAO                 With SSAO                 Without SSAO                 With SSAO
+</pre>
 * **Soft Shadow**
 
 <p align="middle">
@@ -28,7 +28,9 @@ Without SSAO                With SSAO                        Without SSAO       
 <img src="data/results/output_render/desk_soft_shadow.jpg" width="200" style="padding-left: 5px;" \>
 </p>
 
-​                                Hard Shadow                      Soft Shadow                       Hard Shadow                      Soft Shadow
+<pre>
+                  Hard Shadow                 Soft Shadow                 Hard Shadow                 Soft Shadow
+</pre>
 
 * **Global Illumination**
 
@@ -38,7 +40,10 @@ Without SSAO                With SSAO                        Without SSAO       
   <img src="data/results/output_render/bunny_with_ssr.jpg" width="200" style="padding-left: 5px;" \>
   <img src="data/results/output_render/bunny_with_sssr.jpg" width="200" style="padding-left: 5px;" \>
   </p>
-  ​                           Mirror Reflection              Glossy Reflection               Mirror Reflection               Glossy Reflection
+ 
+<pre>
+                  Mirror Reflection         Glossy Reflection            Mirror Reflection           Glossy Reflection
+</pre>
 
 * **Subsurface Scattering**
 
@@ -49,7 +54,9 @@ Without SSAO                With SSAO                        Without SSAO       
 <img src="data/results/output_render/withSSS2.jpg" width="200" style="padding-left: 5px;" \>
 </p>
 
-​                                  Without SSS                         With SSS                        Without SSS                         With SSS
+<pre>
+                  Without SSS                  With SSS                   Without SSS                  With SSS
+</pre>
 
 ## Performance Comparisons
 

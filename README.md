@@ -17,7 +17,7 @@
 <img src="data/results/output_render/buddha_with_ssao.jpg" width="200" style="padding-left: 5px;" \>
 </p>
 <pre>
-Without SSAO                 With SSAO                 Without SSAO                 With SSAO
+     Without SSAO                 With SSAO                 Without SSAO                 With SSAO
 </pre>
 
 * **Soft Shadow**
@@ -30,7 +30,7 @@ Without SSAO                 With SSAO                 Without SSAO             
 </p>
 
 <pre>
-Hard Shadow                 Soft Shadow                 Hard Shadow                 Soft Shadow
+     Hard Shadow                 Soft Shadow                 Hard Shadow                 Soft Shadow
 </pre>
 
 * **Global Illumination**
@@ -43,7 +43,7 @@ Hard Shadow                 Soft Shadow                 Hard Shadow             
   </p>
  
 <pre>
-Mirror Reflection         Glossy Reflection            Mirror Reflection           Glossy Reflection
+     Mirror Reflection         Glossy Reflection            Mirror Reflection           Glossy Reflection
 </pre>
 
 * **Subsurface Scattering**
@@ -56,7 +56,7 @@ Mirror Reflection         Glossy Reflection            Mirror Reflection        
 </p>
 
 <pre>
-Without SSS                  With SSS                   Without SSS                  With SSS
+     Without SSS                  With SSS                   Without SSS                  With SSS
 </pre>
 
 ## Performance Comparisons

@@ -36,10 +36,10 @@
 * **Global Illumination**
 
   <p align="middle">
-  <img src="data/results/output_render/cornellbox_with_ssr.jpg" width="195" \>
-  <img src="data/results/output_render/cornellbox_with_sssr.jpg" width="195" style="padding-left: 5px;" \>
-  <img src="data/results/output_render/bunny_with_ssr.jpg" width="195" style="padding-left: 5px;" \>
-  <img src="data/results/output_render/bunny_with_sssr.jpg" width="195" style="padding-left: 5px;" \>
+  <img src="data/results/output_render/cornellbox_with_ssr.jpg" width="190" \>
+  <img src="data/results/output_render/cornellbox_with_sssr.jpg" width="190" style="padding-left: 5px;" \>
+  <img src="data/results/output_render/bunny_with_ssr.jpg" width="190" style="padding-left: 5px;" \>
+  <img src="data/results/output_render/bunny_with_sssr.jpg" width="190" style="padding-left: 5px;" \>
   </p>
  
 <pre>

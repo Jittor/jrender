@@ -4,7 +4,7 @@
 
 * SoftRas acceleration! (Ours is times faster than other implementations.)
 
-* Support various rendering effects including **Ambient occlusion**, **Soft shadow**, **Global illumination** and **Subsurface scattering**.   
+* Support various rendering effects including **Ambient occlusion**, **Soft shadow**, **Global illumination** and **Subsurface scattering**！ 
 
 ## Gallery
 

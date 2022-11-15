@@ -7,7 +7,7 @@ import imageio
 import argparse
 from jrender.render2.render2 import Render
 from jrender.Scene import *
-import time
+import tqdm
 
 def set_vertices(vertices,offset_x,offset_y,offset_z):
     x = vertices[:,:,0] + offset_x
@@ -21,17 +21,17 @@ data_dir = os.path.join(current_dir, 'data')
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--filename-input', type=str, 
-        default=os.path.join(data_dir, 'scene_desk'))
+        default=os.path.join(data_dir, 'scene/scene_desk'))
     parser.add_argument('-o', '--output-dir', type=str,  
         default=os.path.join(data_dir, 'results/output_render'))
     args = parser.parse_args()
     #TODO:light area 
     #render = Render(image_size=2048,camera_mode="look",eye=[0.07,0.9,-1.75],camera_direction=[0,-0.3,1],near=0.5)
-    render = Render(image_size=2048,camera_mode="look",eye=[-1.75 * 0.9,1.2 * 0.9,2 * 0.9],camera_direction=[0.98,-0.7,-1.2],near=0.5)
+    render = Render(image_size=1024,camera_mode="look_at",eye=[-1.75 * 0.9,1.2 * 0.9,2 * 0.9],camera_direction=[0.98,-0.7,-1.2],near=0.5)
     files_name = [os.path.join(args.filename_input, filename) for filename in os.listdir(args.filename_input)]
     scene = Scene.load_scene_from_obj(files_name)
-    light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.35,type="point",shadow=False,view_angle=50,up=[0,0,1])
-    #light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.5,type="area",area = 0.01,shadow=True,view_angle=50,up=[0,0,1])
+    #light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.35,type="point",shadow=False,view_angle=50,up=[0,0,1])
+    light1 = Light(position=[0.68,2.5,-1.7],direction=[0,-1,0],intensity=1.5,type="area",area = 0.01,shadow=True,view_angle=50,up=[0,0,1])
     light2 = Light(intensity=0.6,type="ambient")
     scene.set_specular(1,False)
     scene.append_light([light1,light2])
@@ -50,15 +50,17 @@ def main():
     scene.objects[2]._face_vertices = set_vertices(scene.objects[2]._face_vertices,0,-0.3,1)
     scene.objects[3]._face_vertices = set_vertices(scene.objects[3]._face_vertices,0.12,0.64,0)
 
-    start_time = time.time()
-    rgb = scene.deferred_render()[:,::-1,:]
-    end_time = time.time()
-    print(end_time-start_time)
-    os.makedirs(args.output_dir, exist_ok=True)
-
+    camera_distance = 2.5
+    elevation = 30
     # draw object from different view
-    writer = imageio.get_writer(os.path.join(args.output_dir, 'test.jpg'))
-    writer.append_data((255*rgb.numpy()).astype(np.uint8))
+    loop = tqdm.tqdm(list(range(0, 360, 4)))
+    writer = imageio.get_writer(os.path.join(args.output_dir, 'desk_rotation_1024.gif'), mode='I')
+    for num, azimuth in enumerate(loop):
+        # rest mesh to initial state
+        loop.set_description('Drawing rotation')
+        render.set_eyes_from_angles(camera_distance, elevation, azimuth)
+        rgb = scene.deferred_render()[:,::-1,:]
+        writer.append_data((255*rgb.numpy()).astype(np.uint8))
     writer.close()
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import jittor as jt
 from jittor import nn
 from skimage.io import imsave
 
+
 def SSR_cuda_naive2(color, world_buffer, normal_buffer, faces_ind_buffer, ssr_faces, width, far, step = 1):        
     image = jt.zeros_like(color)
     depth = world_buffer[:,:,2]
@@ -220,9 +221,9 @@ __global__ void SSR_cuda_kernel(scalar_t* image,
         //draw_point((float*)image, round(ray_x), is - round(ray_y), 3, is, make_float3(ray_depth,z,0.));
 
 		if (ray_depth > z + pixel_bias && ray_depth <= far && ray_depth < z + world_thickness) {
-            image[i * 3 + 0] = 0.6 * colors[ind * 3 + 0];
-            image[i * 3 + 1] = 0.6 * colors[ind * 3 + 1];
-            image[i * 3 + 2] = 0.6 * colors[ind * 3 + 2];
+            image[i * 3 + 0] = colors[i * 3 + 0] + 0.6 * colors[ind * 3 + 0];
+            image[i * 3 + 1] = colors[i * 3 + 0] + 0.6 * colors[ind * 3 + 1];
+            image[i * 3 + 2] = colors[i * 3 + 0] + 0.6 * colors[ind * 3 + 2];
 			return;
 		}
 	}
@@ -240,7 +241,7 @@ __global__ void SSR_cuda_kernel(scalar_t* image,
         const auto ssr_obj = ssr_faces_shape0/2;
         const int threads = 512;
         const dim3 blocks = ( (is * is - 1) / threads + 1);
-        //cudaMemcpy(image_p, color_p, 12 * is * is, cudaMemcpyDeviceToDevice);
+        cudaMemcpy(image_p, color_p, 12 * is * is, cudaMemcpyDeviceToDevice);
         SSR_cuda_kernel<float32><<<blocks,threads>>>(
             image_p,
             color_p,
@@ -261,6 +262,7 @@ __global__ void SSR_cuda_kernel(scalar_t* image,
 
         '''
                    )
+
 
 def SSR_cuda(color, world_buffer, normal_buffer, faces_ind_buffer, ssr_faces, width, far, step = 1, level_intersect = 0):
     Hi_z = []
@@ -813,8 +815,8 @@ __global__ void SSR_cuda_kernel(scalar_t* image,
     ray_x += step_x;
     ray_y += step_y;
     
-    if (i == 1300 * 2048 + 1200){
-    //if (1){ 
+    //if (i == 1300 * 2048 + 1200){
+    if (1){ 
 	while (1) {
         iter++;
         if (ray_depth > far){
@@ -834,8 +836,8 @@ __global__ void SSR_cuda_kernel(scalar_t* image,
 		denominator = denominator > 0 ? max(denominator, 1e-5) : min(denominator, -1e-5);
 		ray_depth = numerator / denominator;
         //if (iter == 1)
-        printf("step_k:%f ray_k:%f ray_xi:%f ray_yi:%f numerator:%f denominator:%f ray_depth:%f z:%f\\n",step_k,ray_k,ray_xi,ray_yi,numerator,denominator,ray_depth,z);
-        draw_point((float*)image, round(ray_x), is - round(ray_y), 3, is, make_float3(ray_depth,z,0.));
+        //printf("step_k:%f ray_k:%f ray_xi:%f ray_yi:%f numerator:%f denominator:%f ray_depth:%f z:%f\\n",step_k,ray_k,ray_xi,ray_yi,numerator,denominator,ray_depth,z);
+        //draw_point((float*)image, round(ray_x), is - round(ray_y), 3, is, make_float3(ray_depth,z,0.));
 
 		if (ray_depth > z + pixel_bias && ray_depth <= far && ray_depth < z + world_thickness) {
             int ind = int(ray_x) + (is - int(ray_y) - 1) * is;

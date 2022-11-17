@@ -32,7 +32,7 @@ test.py
 
 extern/mkl/mkldnn_lnx*/*
 
-
+data/scene
 
 build/
 

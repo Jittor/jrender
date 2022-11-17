@@ -1,6 +1,2 @@
 newmtl material_1
-<<<<<<< HEAD
 map_Kd spot_texture.png
-=======
-map_Kd spot_texture.png
->>>>>>> dev_debug

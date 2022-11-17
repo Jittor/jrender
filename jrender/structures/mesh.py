@@ -88,15 +88,10 @@ class Mesh(object):
                 self._metallic_textures = jt.zeros((self.batch_size, self.num_faces, texture_res**2, 1))
                 self._roughness_textures = jt.ones((self.batch_size, self.num_faces, texture_res**2, 1))
             elif self.dr_type == 'n3mr':
-<<<<<<< HEAD
-                self._metallic_textures = jt.zeros((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1))
-                self._roughness_textures = jt.ones((self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1)) * 0.3
-=======
                 self._metallic_textures = jt.zeros(
                     (self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1))
                 self._roughness_textures = jt.ones(
                     (self.batch_size, self.num_faces, texture_res, texture_res, texture_res, 1))
->>>>>>> dev_debug
         elif texture_type == 'vertex':
             self._metallic_textures = jt.zeros((self.batch_size, self.num_vertices, 1))
             self._roughness_textures = jt.ones((self.batch_size, self.num_vertices, 1))

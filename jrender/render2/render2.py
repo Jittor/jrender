@@ -308,10 +308,6 @@ class Render():
             self.Rasterize(proj_vertices, proj_vertices, fill_back=light.fillback)
             DM = self.rasterize.save_vars[4][:, 0, :, :].squeeze(0)
             DM[DM > light.far] = light.far + 1
-<<<<<<< HEAD
-=======
-            #imsave("D:\Render\jrender\data\\results\\temp\\DM.jpg", DM)
->>>>>>> dev_debug
             return DM
 
         elif light.type == "directional":
@@ -448,18 +444,8 @@ class Render():
         normal_buffer = self.normal_buffer
         faces_ind_buffer = self.faces_ind_buffer
         width = math.tan(self.viewing_angle/180.*math.pi)
-<<<<<<< HEAD
-        color = SSR_cuda(color, world_buffer, normal_buffer,
-                            faces_ind_buffer, ssr_faces, width, self.far, step=1)
-=======
-        #time1 = time.time()
         color = SSR_cuda_naive2(color, world_buffer, normal_buffer,
                             faces_ind_buffer, ssr_faces, width, self.far, step=1)
-        #reflect = FXAA_cuda(reflect)
-        #time2 = time.time()
-        #print(time2 - time1)
-        #imsave("D:\Render\jrender\data\\results\\temp\\debug.bmp", reflect)
->>>>>>> dev_debug
         return color
 
     def SSSR(self, color):
@@ -481,22 +467,12 @@ class Render():
                             faces_ind_buffer, ssr_faces, width, self.far, step=1, level_intersect=0, spp=256)
         time2 = time.time()
         print(time2 - time1)
-<<<<<<< HEAD
         imsave("D:\Render\jrender\data\\results\\temp\\sssr_reflect.bmp", reflect)
-=======
-        #imsave("D:\Render\jrender\data\\results\\temp\\reflect.bmp", reflect)
-        #imsave("D:\Render\jrender\data\\results\\temp\\sssr.bmp", color + reflect)
->>>>>>> dev_debug
         reflect = jt.clamp(reflect, 0, 1).numpy() * 255
         reflect = numpy.uint8(reflect)
         reflect = cv2.bilateralFilter(reflect, d=10, sigmaColor=20, sigmaSpace=10)
         reflect = jt.array(reflect)/255.
         color = color + reflect
-<<<<<<< HEAD
-=======
-        #imsave("D:\Render\jrender\data\\results\\output_render\\SSSR.jpg", color[:, ::-1, :])
-        #imsave("D:\Render\jrender\data\\results\\temp\\sssr_bl.bmp", out_reflect)
->>>>>>> dev_debug
         return color
 
     def SSAO(self, color):
@@ -506,11 +482,7 @@ class Render():
         width = math.tan(self.viewing_angle/180.*math.pi)
         occlusion = SSAO_cuda(depth, faces_ind_buffer, normal_buffer, width, sample_num=256, sample_range_r=0.25)
         ambient = 1 - occlusion
-<<<<<<< HEAD
         imsave("D:\Render\jrender\data\\results\\temp\\ambient_occlusion.jpg", ambient[:, ::-1])
-=======
-        #imsave("D:\Render\jrender\data\\results\\temp\\ambient_occlusion.jpg", ambient[:, ::-1])
->>>>>>> dev_debug
         filter_w = jt.ones([5, 5], "float32")/25
         ambient = conv_for_image(ambient, filter_w, 0)
         color *= ambient.unsqueeze(2)

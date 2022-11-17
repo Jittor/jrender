@@ -73,12 +73,12 @@ class obj():
         if self.face_normals_update:
             if self.Generate_Normals == "surface":
                 self._face_normals = jt.ones_like(self.face_vertices) * self.surface_normals.unsqueeze(1)
-            elif self.Generate_Normals == "vertex":  # to do
+            elif self.Generate_Normals == "vertex":  #TODO
                 self._face_normals = None
             elif self.Generate_Normals == "normal_texture":
                 normals = self.normal_textures.query_uv
                 TBN = create_TBN(self._kd_texture_uv, self.face_vertices)
-                self._face_normals = jt.matmul(normals.unsqueeze(2), TBN.unsqueeze()).squeeze(2)
+                self._face_normals = jt.matmul(normals.unsqueeze(2), TBN).squeeze(2)
             elif self.Generate_Normals == "from_obj":
                 self._face_normals = jt.normalize(self.face_normals_from_obj,dim=2)
             self.face_normals_update = False

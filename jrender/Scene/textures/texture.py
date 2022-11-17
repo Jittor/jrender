@@ -107,6 +107,9 @@ class Texture():  #image:[height,width,(channels)]  uv:[...,2]
             return None
         image = imread(path).astype(np.float32)/255.
         image = jt.array(image).float32()
+        # an extral alpha channel shoule ignore for now
+        if image.shape[2] == 4:
+            image = image[...,:3]
         return cls(image)
 
     @classmethod

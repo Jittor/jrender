@@ -50,6 +50,7 @@ core
 __data__
 logs
 
+data/scene/*
 
 
 

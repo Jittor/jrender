@@ -1,7 +1,7 @@
 
 import jittor as jt
 
-#face_texcoords:[nf,3,3] face_wcoords:[nf,3,3]
+#face_texcoords:[nf,3,2] face_wcoords:[nf,3,3]
 #TBN:[nf,3,3] ([nf:T;B;N])
 def create_TBN(face_texcoords,face_wcoords):
     e1=face_wcoords[::,0]-face_wcoords[::,1]

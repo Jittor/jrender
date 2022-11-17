@@ -374,4 +374,3 @@ def join_meshes_as_scene(meshes: List[Mesh], include_texture: bool = True) -> Me
     else:
         return Mesh(vert,face)
     
-    #TODO 保持属性一致

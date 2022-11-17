@@ -71,13 +71,15 @@ def load_textures(filename_obj, filename_mtl, texture_res, texture_wrapping='REP
 
     colors, texture_filenames = load_mtl(filename_mtl)
 
-    textures = jt.zeros((faces.shape[0], texture_res, texture_res, texture_res, 3), dtype="float32") + 0.5
-
+    textures = jt.zeros((faces.shape[0], 3), dtype="float32") + 0.5
+    textures = textures.numpy().tolist()
+    
     for material_name, color in colors.items():
-        color = jt.array(color).float32()
         for i, material_name_f in enumerate(material_names):
             if material_name == material_name_f:
-                textures[i, :, :, :, :] = color[None, None, None, :]
+                textures[i] = color
+    textures = jt.array(textures).unsqueeze(1).unsqueeze(1).unsqueeze(1).float32()
+    textures = jt.repeat(textures,[1,texture_res,texture_res,texture_res,1])
 
     for material_name, filename_texture in texture_filenames.items():
         filename_texture = os.path.join(os.path.dirname(filename_obj), filename_texture)
@@ -94,10 +96,10 @@ def load_textures(filename_obj, filename_mtl, texture_res, texture_wrapping='REP
         image = jt.array(image.copy()).float32()
         is_update = (np.array(material_names) == material_name).astype(np.int32)
         is_update = jt.array(is_update)
-        textures = _load_textures_for_n3mr(image, faces, textures, is_update,
+        textures = _load_textures_for_n3mr(image, faces, textures, is_update, 
                                                     texture_wrapping_dict[texture_wrapping],
-                                                    int(use_bilinear))
-    return textures
+                                                    int(use_bilinear))                            # TODO   textures = _load_textures_for_n3mr(image, faces, textures, is_update) raise_cxx_exception 3221225725
+    return textures 
 
 def load_obj(filename_obj, normalization=True, texture_res=4, load_texture=False,
              texture_wrapping='REPEAT', use_bilinear=True):

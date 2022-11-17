@@ -16,8 +16,10 @@ def look(vertices, eye, direction=[0, 1, 0], up=None, coordinate ="right"):
     batch_size = vertices.shape[0]
     if up is None:
         up = jt.array([0, 1, 0]).float32()
+
     if isinstance(up, list):
         up = jt.array(up).float32()
+
     if len(eye.shape) == 1:
         eye = eye.broadcast([batch_size] + eye.shape)
     if len(direction.shape) == 1:

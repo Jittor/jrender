@@ -1,63 +1,121 @@
-# Jrender 2.0 (Jittor渲染库)
+# Jrender 2.0 (Jittor Rendering Library)
 
-## 渲染结果一览
+## News!
 
-<p align="left">
-<img src="data/imgs/softras-rgb.gif" width="120" \>
-<img src="data/imgs/specular.gif" width="120" style="padding-left: 5px;" \>
-<img src="data/imgs/n3mr-deform.gif" width="120" style="padding-left: 5px;" \>
-<img src="data/imgs/optim_textures.gif" width="120" style="padding-left: 5px;" \>
-<img src="data/imgs/metallic.gif" width="120" style="padding-left: 5px;" \>
-<img src="data/imgs/roughness.gif" width="120" style="padding-left: 5px;" \>
+* SoftRas acceleration! (Ours is times faster than other implementations.)
+
+* Support various rendering effects including **Ambient occlusion**, **Soft shadow**, **Global illumination** and **Subsurface scattering**！ 
+
+## Gallery
+
+* **Ambient occlusion**
+
+<p align="middle">
+<img src="data/results/output_render/serapis_without_ssao.jpg" width="200" \>
+<img src="data/results/output_render/serapis_with_ssao.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/buddha_without_ssao.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/buddha_with_ssao.jpg" width="200" style="padding-left: 5px;" \>
+</p>
+<pre>
+     Without SSAO                 With SSAO                 Without SSAO                 With SSAO
+</pre>
+
+* **Soft Shadow**
+
+<p align="middle">
+<img src="data/results/output_render/cone_hard_shadow.jpg" width="200" \>
+<img src="data/results/output_render/cone_soft_shadow.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/desk_hard_shadow.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/desk_soft_shadow.jpg" width="200" style="padding-left: 5px;" \>
 </p>
 
-## 介绍
+<pre>
+     Hard Shadow                 Soft Shadow                 Hard Shadow                 Soft Shadow
+</pre>
 
-主要特性:
+* **Global Illumination**
+<p align="middle">
+<img src="data/results/output_render/cornellbox_with_ssr.jpg" width="200" \>
+<img src="data/results/output_render/cornellbox_with_sssr.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/bunny_with_ssr.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/bunny_with_sssr.jpg" width="200" style="padding-left: 5px;" \>
+</p>
+ 
+<pre>
+   Mirror Reflection          Glossy Reflection           Mirror Reflection         Glossy Reflection
+</pre>
 
-* 支持对.obj文件的加载和保存，支持对三角网格模型的渲染；
-* 支持Volume Rendering；
-* 内置2个主流三角网格可微渲染器SoftRas和N3MR，支持快速切换可微渲染器；
-* 支持金属度、粗糙度材质渲染；
-* 内置多种loss函数、投影函数；
-* 使用CUDA进行渲染加速，渲染速度优于PyTorch。
+* **Subsurface Scattering**
 
-## 示例
+<p align="middle">
+<img src="data/results/output_render/noSSS.jpg" width="200" \>
+<img src="data/results/output_render/withSSS.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/noSSS2.jpg" width="200" style="padding-left: 5px;" \>
+<img src="data/results/output_render/withSSS2.jpg" width="200" style="padding-left: 5px;" \>
+</p>
 
-## 基础教程
+<pre>
+     Without SSS                  With SSS                   Without SSS                  With SSS
+</pre>
 
-- [Jrender 2.0 (Jittor渲染库)](#jrender-20-jittor渲染库)
-  - [渲染结果一览](#渲染结果一览)
-  - [介绍](#介绍)
-  - [示例](#示例)
-  - [基础教程](#基础教程)
-  - [进阶教程](#进阶教程)
-  - [使用](#使用)
-  - [计图大赛Baseline](#计图大赛baseline)
-  - [速度对比](#速度对比)
-  - [基础教程](#基础教程-1)
-    - [基础教程1：渲染物体](#基础教程1渲染物体)
-    - [基础教程1.5：渲染次表面散射](#基础教程15渲染次表面散射)
-    - [基础教程2：优化模型几何](#基础教程2优化模型几何)
-    - [基础教程3：渲染Specular材质](#基础教程3渲染specular材质)
-    - [基础教程4：优化纹理](#基础教程4优化纹理)
-    - [基础教程5：优化金属度贴图](#基础教程5优化金属度贴图)
-    - [基础教程6：优化粗糙度贴图](#基础教程6优化粗糙度贴图)
-  - [进阶教程](#进阶教程-1)
-    - [进阶教程1：人脸重建](#进阶教程1人脸重建)
-    - [进阶教程2：NERF](#进阶教程2nerf)
-  - [Citation](#citation)
+## Performance Comparisons
 
-## 进阶教程
+* SoftRas Rendering time for 1024 * 1024 resolution (including forward rendering + gradients: **ms**)
 
-* [进阶教程1：人脸重建](#进阶教程1：人脸重建)
-* [进阶教程2：NERF](#进阶教程2：NERF)
+  |                   | Small-size Mesh(280) | Middle-size Mesh(3.3k) | Large-size Mesh(39k) |
+  | ----------------- | :------------------: | :--------------------: | :------------------: |
+  | Official SoftRas  |         9.2          |          44.1          |        404.9         |
+  | Pytorch3D SoftRas |         48.3         |          53.3          |         82.9         |
+  | Jrender SoftRas   |         7.3          |          11.5          |         35.5         |
 
-## 使用
+* SoftRas **speedup** for 1024 * 1024 resolution compared with other implementations 
 
-使用JRender前需要安装好Jittor，Jittor安装方法在[此处](https://github.com/Jittor/jittor)。
+  |                   | Small-size Mesh(280) | Middle-size Mesh(3.3k) | Large-size Mesh(39k) |
+  | ----------------- | :------------------: | :--------------------: | :------------------: |
+  | Official SoftRas  |       **1.3**        |        **3.8**         |       **11.4**       |
+  | Pytorch3D SoftRas |       **6.6**        |        **4.6**         |       **2.3**        |
 
-此外安装以下包：
+* NMR Performance for 1024 * 1024 resolution (including forward rendering + gradients: **ms**)
+
+  |              | Small-size Mesh(280) | Middle-size Mesh(3.3k) | Large-size Mesh(39k) |
+  | ------------ | :------------------: | :--------------------: | :------------------: |
+  | Official NMR |         42.3         |         236.9          |         2581         |
+  | Jrender NMR  |         32.1         |          95.7          |        114.7         |
+  | **Speedup**  |       **1.3**        |        **2.5**         |       **22.5**       |
+
+## Introduction
+
+Main features:
+
+* Mesh loader and materials loader for OBJ file format；
+* Surface Rendering & Volume Rendering；
+* Optimized differentiable rendering algorithms including NMR and SoftRas；
+* PBR materials & Ambient occlusions & Soft shadows & Global illuminations & Subsurface scatterings；
+* Various loss functions and projection functions.
+
+## Examples
+
+## Basic Tutorials
+
+- [Jrender 2.0 (Jittor rendering libary)](#jrender-20-jittor渲染库)
+  - Basic Tutorials
+    - Basic Tutorial 1：Rendering objects
+    - Basic Tutorial 2：Geometry Optimization
+    - Basic Tutorial 3：Rendering Specular materials
+    - Basic Tutorial 4：Texture Optimization
+    - Basic Tutorial 5：Metallic Texture Optimization
+    - Basic Tutorial 6：Roughness Texture Optimization
+
+## Advanced Tutorials
+
+* Advanced Tutorial 1：3D Reconstruction
+* Advanced Tutorial 2：NeRF
+
+## Usage
+
+Please install Jittor before using Jrender. Jittor could be installed from [this](https://github.com/Jittor/jittor)
+
+And other dependent packages：
 
 ```
 jittor
@@ -70,7 +128,7 @@ tqdm==4.46.0
 opencv-python==4.2.0.34
 ```
 
-接着使用下面的命令即可跑jrender的各种demo。
+After the installing, the following commands could be used to run these demos:
 
 ```
 git clone https://github.com/jittor/jrender.git
@@ -83,85 +141,11 @@ python demo5-optim_metallic_textures.py
 python demo6-optim_roughness_textures.py
 ```
 
-## 计图大赛Baseline
-Jrender仓库的NeRF实现可直接用作计图大赛可微渲染新视角生成题目的Baseline，安装好jittor和上述其他依赖包后可按照以下命令运行：
-```
-git clone https://github.com/jittor/jrender.git
-cd jrender
-bash download_competition_data.sh
-python demo7-nerf.py --config ./configs/Easyship.txt
-```
+## Basic Tutorials
 
-本次比赛共包含5个测试场景，其中Easyship属于简单难度，Car、Coffee属于中等难度，Scar、Scarf属于高难度。请大家在Baseline的基础上做出自己的创新性改进。
+### Basic Tutorial 1：Rendering objects
 
-我们使用单张NVIDIA TITAN RTX显卡，在以下环境测试configs/Easyship.txt时：
-
-* cuda: 11.6
-* driver: 510.47
-* jitter: 1.3.3.5
-
-
-训练速度为7.4 iter/s，训练显存为6.3G，测试显存为4.2G。50000次迭代后测试结果为：
-
-
-https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-8ab7-c80e5bc3fe8a.mp4
-
-
-
-如果您的训练速度，占用显存或训练效果与我们的数据明显不符，请随时联系我们解决，我们的比赛QQ群号为：1018591346。
-
-
-该赛题可以从多方面进行思考，包括相机位姿、训练方式和网络结构等，我们给出如下简单的修改示例，具体修改内容见```configs/Easyship-improved.txt```：
-
-
-* 归一化训练位姿
-* 加权采样训练像素
-* 网络输入增加采样点深度
-
-
-50000次迭代后测试结果对比，其中右图为改进后结果：
-
-<p align="left">
-<img src="data/imgs/easyship-origin.png" width="200" \>
-<img src="data/imgs/easyship-improved.png" width="200" style="padding-left: 25px;" \>
-</p>
-
-
-## 速度对比
-
-我们对PyTorch和Jittor渲染一个带有纹理的奶牛以及球形变为飞机做了时间对比测试，测试环境如下。
-
-* cuda: 10.2
-* torch: 1.6.0
-* soft-renderer: 1.0.0
-
-测试结果：
-
-渲染小模型（642顶点）速度对比（渲染1080次）：
-
-|           | JRender渲染时间   | PyTorch渲染时间 | 加速比 |
-|  ----     | ----          | ----  | ----  |
-| N3MR    | 3.56        | 19.45 | 5.46 |
-| Softras   | 3.54      | 5.83  | 1.64 |
-
-渲染大模型（11420顶点）速度对比（渲染1080次）：
-
-|           | JRender渲染时间   | PyTorch渲染时间 | 加速比 |
-|  ----     | ----          | ----  | ----  |
-| N3MR    | 4.99        | 65.07 | 13.04 |
-| Softras   | 12.46        | 18.58 | 1.49 |
-
-|           | 飞机形变优化时间   |
-|  ----     | ----          |
-| Jittor    | 19.58        |
-| PyTorch   | 32.88        |
-| 加速比   | 1.67           |
-
-## 基础教程
-
-### 基础教程1：渲染物体
-
-该教程使用JRender渲染一个奶牛。
+This tutorial is used to render a cow with texture based on Jrender. 
 
     import jrender as jr
     
@@ -178,44 +162,16 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
     rgb = renderer.render_mesh(mesh)
     silhouettes = renderer.render_mesh(mesh, mode='silhouettes') # or mode = 'rgb'
 
-渲染的带有纹理的结果和轮廓图结果如下，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo1-render.py)。
+The rendering results with texture and silhouettes，please refer the  [Code](https://github.com/Jittor/jrender/blob/main/demo1-render.py).
 
-<p align="left">
+<p align="middle">
 <img src="data/imgs/softras-rgb.gif" width="200" \>
 <img src="data/imgs/softras-silhouettes.gif" width="200" style="padding-left: 25px;" \>
 </p>
 
-### 基础教程1.5：渲染次表面散射
+### Basic Tutorial 2：Geometry Optimization
 
-该教程使用JRender渲染皮肤的次表面散射。
-
-    import jrender as jr
-    
-    # create a mesh object from args.filename_input and enable SSS
-    mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=30, texture_type='surface', dr_type='softras',normalization=True,with_SSS = True)
-    
-    # create a softras
-    renderer = jr.Renderer(dr_type='softras',image_size=2048,light_intensity_ambient=0.4, light_color_ambient=[1,1,1],
-                 light_intensity_directionals=1.1, light_color_directionals=[1.0,1.0,1.0],
-                 light_directions=[0,1,0],)
-    
-    # set the position of eyes
-    renderer.transform.set_eyes_from_angles(2.0, 20, 16)
-    
-    # render the given mesh
-    rgb = renderer.render_mesh(mesh)
-
-渲染的人体皮肤的次表面散射结果如下，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo1.5-SSS.py)。
-
-使用SSS
-<p align="left">
-<img src="data/results/output_render/withSSS.jpg" width="200" \>
-<img src="data/results/output_render/withSSS2.jpg" width="200" style="padding-left: 25px;" \>
-</p>
-
-### 基础教程2：优化模型几何
-
-该教程利用可微渲染器将球形变为飞机。
+This tutorial use the differentiable renderer to deform sphere to airplane.
 
     import jrender as jr
     from jrender import neg_iou_loss, LaplacianLoss, FlattenLoss
@@ -266,14 +222,15 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
                 0.0003 * flatten_loss
         optimizer.step(loss)
 
-下图是从球模型变成飞机模型的过程，参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo2-deform.py)。
+The optimization process from sphere to airplane is shown as followed，please refer the [Code](https://github.com/Jittor/jrender/blob/main/demo2-deform.py).
 
+<p align="middle">
 <img src="data/imgs/n3mr-deform.gif" width="200" style="max-width:50%;">
+</p>
 
+### Basic Tutorial 3：Rendering Specular Materials
 
-### 基础教程3：渲染Specular材质
-
-我们在Jrender渲染库中实现了Microfacet模型，可以支持Specular材质渲染。用户可以通过我们的API传入金属度贴图和粗糙度贴图来控制Specular材质的样式，获得具有不同光泽特性的渲染结果。
+We implement the PBR shading models based on the microfacet theory in Jrender, which could be used to render specular/glossy materials. And the users could control the various highlights and other shading appearances by modifying roughness and metallic. 
 
     # load from Wavefront .obj file
     mesh = jr.Mesh.from_obj(args.filename_input, load_texture=True, texture_res=5 ,texture_type='surface', dr_type='softras')
@@ -300,11 +257,13 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
         writer.append_data((255*image).astype(np.uint8))
     writer.close()
 
-带有粗糙度和金属度贴图的渲染结果如下,参见[详细代码](https://github.com/Jittor/jrender/blob/main/demo3-render_specular.py)。
+The rendering results with specular materials are shown as followed, please refer to [Code](https://github.com/Jittor/jrender/blob/main/demo3-render_specular.py).
 
+<p align="middle">
 <img src="data/imgs/specular.gif" width="200" style="max-width:50%;">
+</p>
 
-### 基础教程4：优化纹理
+### Basic Tutorial 4：Texture Optimization
 
     class Model(nn.Module):
     def __init__(self, filename_obj, filename_ref):
@@ -340,14 +299,15 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
         loss = model()
         optimizer.step(loss)
 
-下图是纹理的优化结果，从左到右分别是优化目标纹理图像和优化结果，参见[详细代码](https://github.com/jittor/jrender/blob/main/demo4-optim_textures.py)。
+The left image is the target texture and the right image shows the optimization process, please refer to [Code](https://github.com/jittor/jrender/blob/main/demo4-optim_textures.py).
 
-<p align="left">
+<p align="middle">
 <img src="data/ref/ref_texture.png" width="200" style="max-width:50%;">
 <img src="data/imgs/optim_textures.gif" width="200" style="max-width:50%;">
 </p>
 
-### 基础教程5：优化金属度贴图
+
+### Basic Tutorial 5：Metallic Texture Optimization
 
     class Model(nn.Module):
         def __init__(self, filename_obj, filename_ref):
@@ -383,16 +343,17 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
         loss = model()
         optimizer.step(loss)
 
-下图是金属度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/jittor/jrender/blob/main/demo5-optim_metallic_textures.py)。
+The left image is the initial state，the middle image is the target image and the right image shows the optimization process. Please refer to [Code](https://github.com/jittor/jrender/blob/main/demo5-optim_metallic_textures.py).
 
-<p align="left">
+<p align="middle">
 <img src="data/ref/init_metallic.png" width="200" style="max-width:50%;">
 <img src="data/ref/ref_metallic.png" width="200" style="max-width:50%;">
 <img src="data/imgs/metallic.gif" width="200" style="max-width:50%;">
 </p>
 
 
-### 基础教程6：优化粗糙度贴图
+
+### Basic Tutorial 6：Roughness Texture Optimization
     class Model(nn.Module):
         def __init__(self, filename_obj, filename_ref):
             super(Model, self).__init__()
@@ -428,32 +389,33 @@ https://user-images.githubusercontent.com/20569510/164967694-f7866719-0343-4e60-
             optimizer.step(loss)
 
 
-下图是粗糙度贴图的优化过程，从左到右分别是起始模型、优化目标图像和优化过程，参见[详细代码](https://github.com/jittor/jrender/blob/main/demo6-optim_roughness_textures.py)。
+The left image is the initial state，the middle image is the target image and the right image shows the optimization process. Please refer to [Code](https://github.com/jittor/jrender/blob/main/demo6-optim_roughness_textures.py).
 
-<p align="left">
+<p align="middle">
 <img src="data/ref/init_roughness.png" width="200" style="max-width:50%;">
 <img src="data/ref/ref_roughness.png" width="200" style="max-width:50%;">
 <img src="data/imgs/roughness.gif" width="200" style="max-width:50%;">
 </p>
 
-## 进阶教程
 
-### 进阶教程1：人脸重建
+## Advanced Tutorials
 
-我们在JRender渲染库下复现了CVPR 2020 Best Paper，这篇paper利用可微渲染技术实现了无监督的人脸重建，我们的模型训练速度是PyTorch的1.31倍。参见[详细代码](https://github.com/Jittor/unsup3d-jittor)。
+### Advanced Tutorial 1：3D Reconstruction
 
-### 进阶教程2：NERF
+We reimplement Wu's CVPR 2020 Best Paper, which use the differentiable rendering technique for 3D reconstruction. And our training speed is 1.31 times than the official version. Please refer to [Code](https://github.com/Jittor/unsup3d-jittor) for details.
 
-Jrender 2.0版本新推出了Volume Rendering功能，基于该新特性，我们复现了发表于ECCV 2020的NERF，该论文利用神经辐射场表示场景，对合成场景及真实场景都可恢复到真实感渲染级效果。
+### Advanced Tutorials 2：NeRF
 
-Jittor版本的NERF训练前需要下载数据集，下载后运行方法如下。
+We reimplement NeRF published in ECCV 2020，which represents 3D scenes with neural radiance fields for novel view synthesis.
+
+NeRF based on Jittor could be trained by:
 
 ```
 bash download_example_data.sh
 python nerf.py --config configs/lego.txt
 ```
 
-下图是NERF在合成场景下的渲染效果：
+The rendering results for synthesized scenes：
 
 <p align="left">
 <img src="data/imgs/lego.gif" width="260" style="max-width:50%;">
@@ -462,7 +424,7 @@ python nerf.py --config configs/lego.txt
 </p>
 
 
-下图是NERF在真实场景下的渲染效果：
+The rendering results for real scenes：
 
 <p align="left">
 <img src="data/imgs/fern.gif" width="260" style="max-width:50%;">
@@ -471,12 +433,12 @@ python nerf.py --config configs/lego.txt
 </p>
 
 
-基于Jittor版本的NERF比Pytoch版本的NERF在速度上有明显优势，我们的训练速度是NeRF官方版本的1.4倍。
+Our implementation is 1.4 times faster than the official version, and use less GPU memory.
 
 
 ## Citation
 
-如果您在自己的研究工作中使用了JRender，请引用Jittor的论文。
+Jrender is based on Jittor, and if you use Jrender in your work，please cite:
 ```
 @article{hu2020jittor,
   title={Jittor: a novel deep learning framework with meta-operators and unified graph execution},
@@ -489,7 +451,7 @@ python nerf.py --config configs/lego.txt
 }
 ```
 
-同时，本渲染器内置了N3MR和SoftRas两个可微渲染器，若您在研究中使用了渲染器，请您引用相应的论文。
+And if you use the NMR and SoftRas algorithms in Jrender, please cite:
 ```
 @InProceedings{kato2018renderer
     title={Neural 3D Mesh Renderer},

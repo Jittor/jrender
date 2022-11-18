@@ -84,15 +84,19 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
 
     colors, texture_filenames ,normal_filename= load_mtl(filename_mtl)
 
-    textures = jt.ones((faces.shape[0], texture_res**2, 3), dtype="float32")
+    textures = jt.ones((faces.shape[0], 3), dtype="float32").numpy().tolist()
     normal_textures = jt.ones((faces.shape[0], texture_res**2, 3), dtype="float32")             
     TBN=jt.ones((faces.shape[0],3,3),dtype="float32")
 
     for material_name, color in colors.items():
-        color = jt.array(color).float32()
+        #color = jt.array(color).float32()
         for i, material_name_f in enumerate(material_names):
             if material_name == material_name_f:
-                textures[i, :, :] = color.unsqueeze(0)
+                textures[i] = color
+                                                       # TODO   textures = _load_textures_for_softras(image, faces, textures, is_update) raise_cxx_exception 3221225725 ???
+    textures = jt.array(textures).unsqueeze(1).float32()
+    textures = jt.repeat(textures,[1,texture_res**2,1])
+
 
     #load color (Kd)  
     for material_name, filename_texture in texture_filenames.items():
@@ -109,8 +113,9 @@ def load_textures(filename_obj, filename_mtl, texture_res,face_vertices=None):
         image = image[::-1, :, :]
         image = jt.array(image.copy()).float32()
         is_update = (np.array(material_names) == material_name).astype(np.int32)
-        is_update = jt.array(is_update).int()
-        textures = _load_textures_for_softras(image, faces, textures, is_update)
+        is_update = jt.array(is_update).int()        
+        textures = _load_textures_for_softras(image, faces, textures, is_update)   
+
 
     #load normal
     if normal_filename == "":

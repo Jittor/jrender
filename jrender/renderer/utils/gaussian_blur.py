@@ -54,24 +54,38 @@ __global__ void gaussain_blur_x_Kernel(const scalar_t* __restrict__ ptr1,
     float x = xi - netFilterWidth * (tap_num - 1) / 2;
     int k, l;
     scalar_t v = 0;
+    
+    int flag = 0;
+    for (k = 0; k < d; k++){
+        scalar_t test = ptr1[yi * w * d + xi * d + l];
+        if (test > 0) flag = 1;
+    }
+    if (!flag) {
+        ptr_result[id] = 0;
+        return;
+    }
+    
+
     for (k = 0; k < tap_num; k++) {
         int x1 = int(x);
         int x2 = int(x) + 1;
         if (x1 < 0) {
-            x1 = -x1;
+            x1 = 0;
         }
         else if (x1 > w - 1) {
-            x1 = 2 * w - 1 - x1;
+            x1 = w - 1;
         }
         if (x2 < 0) {
-            x2 = -x2;
+            x2 = 0;
         }
         else if (x2 > w - 1) {
-            x2 = 2 * w - 1 - x2;
+            x2 = w - 1;
         }
         for (l = 0; l < d; l++) {
             scalar_t v1 = ptr1[yi * w * d + x1 * d + l];
+            v1 = v1 > 1e-6 ? v1 : ptr1[yi * w * d + xi * d + l];
             scalar_t v2 = ptr1[yi * w * d + x2 * d + l];
+            v2 = v2 > 1e-6 ? v2 : ptr1[yi * w * d + xi * d + l];
             scalar_t interpolation = (x - x1) * v2 + (x2 - x) * v1;
             v += interpolation * tap[k];
         }
@@ -104,24 +118,39 @@ __global__ void gaussain_blur_y_Kernel(const scalar_t* __restrict__ ptr1,
     float y = yi - netFilterWidth * (tap_num - 1) / 2;
     int k, l;
     scalar_t v = 0;
+    
+    
+    int flag = 0;
+    for (k = 0; k < d; k++){
+        scalar_t test = ptr1[yi * w * d + xi * d + l];
+        if (test > 0) flag = 1;
+    }
+    if (!flag) {
+        ptr_result[id] = 0;
+        return;
+    }
+    
+
     for (k = 0; k < tap_num; k++) {
         int y1 = int(y);
         int y2 = int(y) + 1;
         if (y1 < 0) {
-            y1 = -y1;
+            y1 = 0;
         }
         else if (y1 > w - 1) {
-            y1 = 2 * w - 1 - y1;
+            y1 = w - 1;
         }
         if (y2 < 0) {
-            y2 = -y2;
+            y2 = 0;
         }
         else if (y2 > w - 1) {
-            y2 = 2 * w - 1 - y2;
+            y2 = w - 1;
         }
         for (l = 0; l < d; l++) {
             scalar_t v1 = ptr1[y1 * w * d + xi * d + l];
+            v1 = v1 > 1e-6 ? v1 : ptr1[yi * w * d + xi * d + l];
             scalar_t v2 = ptr1[y2 * w * d + xi * d + l];
+            v2 = v2 > 1e-6 ? v2 : ptr1[yi * w * d + xi * d + l];
             scalar_t interpolation = v1 * (y2 - y) + v2 * (y - y1);
             v += interpolation * tap[k];
         }

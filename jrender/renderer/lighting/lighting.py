@@ -1,4 +1,3 @@
-from os import terminal_size
 import jittor as jt
 from jittor import nn
 from jrender.renderer.dr.softras.soft_rasterize import SoftRasterizeFunction
@@ -83,7 +82,9 @@ class DirectionalLighting(nn.Module):
 
 
 # subsurface scattering based on the texture_space
+
 def SSS(diffuseLight, specular, mesh):
+
     irradiance = (mesh.textures*diffuseLight).sqrt()
     #rasterize to texture_space
     image_size = 2048
@@ -142,7 +143,6 @@ def SSS(diffuseLight, specular, mesh):
             irradiance_basis_rgb.append(irradiance_rgb[j].clone())
         for k, image in enumerate(irradiance_basis_rgb):
             final_map[:, :, j] += Gaussian_weight[j][k]*image
-
 
     final_map *= diffuse_sqrt
     final_map += specular_Map
@@ -211,7 +211,8 @@ class Lighting(nn.Module):
             specularLight = jt.zeros(mesh.vertices.shape)
             diffuseLight = self.ambient(diffuseLight)
             for directional in self.directionals:
-                [diffuseLight, specularLight] = directional(diffuseLight, specularLight, mesh.vertex_normals, mesh.vertices, eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
+                [diffuseLight, specularLight] = directional(
+                    diffuseLight, specularLight, mesh.vertex_normals, mesh.vertices, eyes, mesh.with_specular, mesh.metallic_textures, mesh.roughness_textures)
             if len(mesh.textures.shape) == 4:
                 mesh.textures = jt.clamp(mesh.textures * diffuseLight.unsqueeze(2) +
                                          jt.ones_like(mesh.textures) * specularLight.unsqueeze(2), 0.0, 1.0)

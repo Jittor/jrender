@@ -230,8 +230,13 @@ def load_obj(filename):
             faces_normal_ind = jt.array(faces_normal_ind)-1
             face_normals = jt.array(normals)[faces_normal_ind]
 
+            if material_name in obj_group.keys():
+                face_vertices = jt.concat([face_vertices,obj_group[material_name]['face_vertices']],dim=0)
+                face_texcoords = jt.concat([face_texcoords,obj_group[material_name]['face_texcoords']],dim=0)
+                face_normals = jt.concat([face_normals,obj_group[material_name]['face_normals']],dim=0)
             obj_group[material_name] = ({"face_vertices": face_vertices,
                                         "face_texcoords": face_texcoords, "face_normals": face_normals})
+            
             material_name = next_name
             world_ind = []
             tex_ind = []

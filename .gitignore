@@ -1,3 +1,61 @@
+<<<<<<< HEAD
+my
+
+.refresh
+
+.DS_Store
+
+__pycache__
+
+.ipynb_checkpoints/
+
+.vscode/
+
+__res/
+
+perf.data
+
+perf.data.old
+
+*.swp
+
+*.ipynb
+
+*.pdf
+
+*.zip
+
+*.tgz
+
+*.obj
+
+test.py
+
+extern/mkl/mkldnn_lnx*/*
+
+data/scene
+
+build/
+
+venv/
+
+
+python/jittor.egg-info
+
+dist/
+
+!doc/source/*
+
+core
+
+__data__
+logs
+
+data/scene/*
+
+
+
+=======
 my
 
 .refresh
@@ -49,3 +107,4 @@ core
 
 __data__
 logs
+>>>>>>> 5fbc0ef13b78afa7b9945513b1b5fd5e2980a95a

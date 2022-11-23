@@ -26,7 +26,7 @@ def main():
 
     # create renderer with SoftRas
     renderer = jr.Renderer(dr_type='softras',image_size=1024,light_intensity_ambient=0.45, light_color_ambient=[1,1,1],
-                 light_intensity_directionals=0.7, light_color_directionals=[1.0,1.0,1.0],
+                 light_intensity_directionals=1, light_color_directionals=[1.0,1.0,1.0],
                  light_directions=[0.65,-0.2,-1],dist_func="barycentric",aggr_func_rgb='hard',camera_mode="look_at",eye=[1.1,0.5,-1.5],camera_direction=[-0.8,-0.2,1])
 
     os.makedirs(args.output_dir, exist_ok=True)

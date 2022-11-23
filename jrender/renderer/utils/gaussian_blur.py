@@ -27,7 +27,7 @@ def Gaussian_1d(v,r):
 
 
 def _blur_for_SSS(image_blur,image,modulate_map,Gauss,tap_num,GaussWidth,dim):
-    return jt.code(image_blur.shape, image_blur.dtype, [image, modulate_map , Gauss, tap_num , GaussWidth, dim],
+    return jt.code(image_blur.shape, image_blur.dtype, [image, modulate_map , Gauss],
     cuda_header='''
 
 template <typename scalar_t>
@@ -40,7 +40,8 @@ __global__ void gaussain_blur_x_Kernel(const scalar_t* __restrict__ ptr1,
     size_t h,
     size_t w,
     size_t d)
-{
+{   
+    
     int xi = threadIdx.x + blockDim.x * blockIdx.x;
     int yi = threadIdx.y + blockDim.y * blockIdx.y;
     if (xi > w - 1) {
@@ -55,6 +56,7 @@ __global__ void gaussain_blur_x_Kernel(const scalar_t* __restrict__ ptr1,
     int k, l;
     scalar_t v = 0;
     
+    
     int flag = 0;
     for (k = 0; k < d; k++){
         scalar_t test = ptr1[yi * w * d + xi * d + l];
@@ -65,7 +67,6 @@ __global__ void gaussain_blur_x_Kernel(const scalar_t* __restrict__ ptr1,
         return;
     }
     
-
     for (k = 0; k < tap_num; k++) {
         int x1 = int(x);
         int x2 = int(x) + 1;
@@ -92,6 +93,7 @@ __global__ void gaussain_blur_x_Kernel(const scalar_t* __restrict__ ptr1,
         x += netFilterWidth;
     }
     ptr_result[id] = v;
+    
 }
 
 template <typename scalar_t>
@@ -105,6 +107,7 @@ __global__ void gaussain_blur_y_Kernel(const scalar_t* __restrict__ ptr1,
     size_t w,
     size_t d)
 {   
+    
     int xi = threadIdx.x + blockDim.x * blockIdx.x;
     int yi = threadIdx.y + blockDim.y * blockIdx.y;
     if (xi > w - 1) {
@@ -157,16 +160,14 @@ __global__ void gaussain_blur_y_Kernel(const scalar_t* __restrict__ ptr1,
         y += netFilterWidth;
     }
     ptr_result[id] = v;
+    
 }
 
     ''',
-    cuda_src='''
+    cuda_src=f'''
     @alias(image, in0)
     @alias(modulate_map, in1)
     @alias(Gauss, in2)
-    @alias(tap_num, in3)
-    @alias(GaussWidth, in4)
-    @alias(dim,in5)
     @alias(image_blur, out0)
     const auto image_height = image_shape0;
     const auto image_width = image_shape1;
@@ -174,25 +175,25 @@ __global__ void gaussain_blur_y_Kernel(const scalar_t* __restrict__ ptr1,
     const dim3 block(32,32);
     const dim3 grid((image_width - 1) / block.x + 1,(image_height - 1) / block.y + 1);
     
-    if (@in5(0)==0)
+    if ({dim}==0)
         gaussain_blur_y_Kernel<float32><<<grid, block>>>(
             image_p,
             modulate_map_p,
             Gauss_p,
             image_blur_p,
-            @in3(0),
-            @in4(0),
+            {tap_num},
+            {GaussWidth},
             image_height,
             image_width,
             image_depth);
-    else if (@in5(0)==1)
+    else if ({dim}==1)
         gaussain_blur_x_Kernel<float32><<<grid, block>>>(
             image_p,
             modulate_map_p,
             Gauss_p,
             image_blur_p,
-            @in3(0),
-            @in4(0),
+            {tap_num},
+            {GaussWidth},
             image_height,
             image_width,
             image_depth);

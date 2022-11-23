@@ -183,7 +183,7 @@ class Render():
                 color += light.intensity * light.color.unsqueeze(0).unsqueeze(0) * textures
                 continue
 
-            V = jt.normalize(self.eye-worldcoords, dim=2)
+            V = jt.normalize(-worldcoords, dim=2)
             if light.type == "directional":
                 light_color = jt.array(light.color, "float32")
                 L = -jt.normalize(jt.array(light.direction, "float32"), dim=0).unsqueeze(0)

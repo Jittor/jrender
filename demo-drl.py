@@ -1,9 +1,12 @@
 
-import torch
+
+
 import jittor as jt
+
 from jittor import nn
 jt.flags.use_cuda = 1
 
+import torch
 import os
 import tqdm
 import numpy as np
@@ -11,6 +14,7 @@ import imageio
 import cv2
 import argparse
 import jrender as jr
+
 
 import time
 if torch.cuda.is_available():
@@ -23,9 +27,9 @@ from geomloss import SamplesLoss
 current_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = os.path.join(current_dir, 'data')
 
-class Model(nn.Module):
+class SimpleModel(nn.Module):
     def __init__(self, template_path):
-        super(Model, self).__init__()
+        super(SimpleModel, self).__init__()
 
         # set template mesh
         self.template_mesh = jr.Mesh.from_obj(template_path, dr_type='softras', load_texture=True, texture_res=5, texture_type='surface')
@@ -39,7 +43,76 @@ class Model(nn.Module):
     def execute(self, batch_size):
         vertices = self.vertices+self.displace
         return jr.Mesh(vertices.repeat(batch_size, 1, 1), self.faces.repeat(batch_size, 1, 1), dr_type='softras', textures = self.textures)
+def _axis_angle_rotation(axis: str, angle):
+    """
+    Return the rotation matrices for one of the rotations about an axis
+    of which Euler angles describe, for each value of the angle given.
 
+    Args:
+        axis: Axis label "X" or "Y or "Z".
+        angle: any shape tensor of Euler angles in radians
+
+    Returns:
+        Rotation matrices as tensor of shape (..., 3, 3).
+    """
+    cos = jt.cos(angle)
+    sin = jt.sin(angle)
+    one = jt.ones_like(angle)
+    zero = jt.zeros_like(angle)
+    if axis == "X":
+        R_flat = (one, zero, zero, zero, cos, -sin, zero, sin, cos)
+    elif axis == "Y":
+        R_flat = (cos, zero, sin, zero, one, zero, -sin, zero, cos)
+    elif axis == "Z":
+        R_flat = (cos, -sin, zero, sin, cos, zero, zero, zero, one)
+    else:
+        raise ValueError("letter must be either X, Y or Z.")
+    return jt.stack(R_flat, -1).reshape(angle.shape + (3, 3))
+
+def euler_angles_to_matrix(euler_angles, convention="XYZ"):
+    matrices = [
+        _axis_angle_rotation(c, e)
+        for c, e in zip(convention, jt.unbind(euler_angles, -1))
+    ]
+    return jt.matmul(jt.matmul(matrices[0], matrices[1]), matrices[2])
+class Furniture(nn.Module):
+    def __init__(self, template_path):
+        super(Furniture, self).__init__()
+        meshes_path = [os.path.join(template_path,x) for x in os.listdir(template_path) if x.endswith(".obj")]
+        self.meshes = []
+        self.displaces = []
+        self.rotations = []
+        for meshpath in meshes_path:
+            #print(meshpath)
+            mesh = jr.Mesh.from_obj(meshpath, dr_type='softras', load_texture=True, texture_res=10, texture_type='surface')
+            mesh.vertices = mesh.vertices.stop_grad()
+            self.meshes.append(mesh)
+            self.displaces.append(jt.zeros(3))
+            self.rotations.append(jt.zeros(3))
+
+
+    def transform(self, vertices, trans, rot):
+        rot_center = jt.mean(vertices,dim=1,keepdims=True)
+        vertices-=rot_center
+        #rot = jt.array([0,3.1415926/2.0,0])
+        #print(vertices)
+        vertices = jt.matmul(vertices, euler_angles_to_matrix(rot).transpose(0,2,1))
+        #print(vertices)
+        vertices+=rot_center+trans
+        return vertices
+    
+    def execute(self):
+        meshlist = []
+        for (mesh,trans,rot) in zip(self.meshes,self.displaces,self.rotations):
+            trans[1] = 0
+            rot[0] = 0.0
+            rot[2]=0.0
+            #print(trans,rot)
+            new_vert = self.transform(mesh.vertices.clone(), trans, rot)
+            adjust_mesh = jr.Mesh(new_vert, mesh.faces, dr_type='softras', textures = mesh.textures)
+            meshlist.append(adjust_mesh)
+            #print(new_vert)
+        return jr.join_meshes_as_scene(meshlist,include_texture=True)
 
 
 class Matcher():
@@ -75,58 +148,67 @@ def main():
     parser.add_argument('-t', '--template-mesh', type=str, 
         default=os.path.join(data_dir, 'obj/spot/spot_triangulated.obj'))
     parser.add_argument('-o', '--output-dir', type=str, 
-        default=os.path.join(data_dir, 'results/output_drl'))
+        default=os.path.join(data_dir, 'results/output_drl_fur'))
     parser.add_argument('-b', '--batch-size', type=int,
         default=1)
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    model = Model(args.template_mesh)
-
+    model = Furniture(os.path.join(args.template_mesh,"gt"))
     # read training images and camera poses
 
-    print("start optim")
-    res=512
+    res=128
     sta = time.time()
     
-    mesh = model(args.batch_size)
-    mesh.vertices[...,2]-=1.2
-    num_views=args.batch_size
-    elevations = jt.linspace(0, 360, num_views)
-    azimuths = jt.linspace(-90, 180, num_views)
-    camera_distances = jt.ones_like(azimuths)*5.0
-    renderer = jr.Renderer(image_size=res, sigma_val=1e-4, aggr_func_rgb='hard', camera_mode='look_at', viewing_angle=15, dr_type='DrL')
-    renderer.transform.set_eyes_from_angles(camera_distances, elevations, azimuths)
+    bg_img = cv2.imread(os.path.join(args.template_mesh,"init", "0_bg.png"))
+    bg_img = cv2.resize(bg_img,(res,res))
+    bg_img = cv2.cvtColor(bg_img, cv2.COLOR_BGR2RGB)
+    bg_img = jt.array(bg_img)/255.0
+
+    cam = np.loadtxt(os.path.join(args.template_mesh,"gt","camera.txt")).tolist()
+    pos = jt.array([cam[0][0],cam[0][2],-cam[0][1]])
+    rot = jt.array([cam[1][0],cam[1][2],cam[1][1]])
+
+    up = jt.array([0,-1,0.])
+    rotm = euler_angles_to_matrix(rot,convention="XYZ")[0]
+    dir = jt.matmul(up,rotm)
+    dir[2]*=-1
+
+    mesh = model()
+    renderer = jr.Renderer(image_size=res, background_color=[1.0,1.0,1.0], sigma_val=1e-4, aggr_func_rgb='hard', camera_mode='look', eye = pos, camera_direction = dir, viewing_angle=35, dr_type='DrL', coordinate = "left")
     images, points_orig, msks_orig = renderer.render_mesh(mesh, mode='rgb')
-    
-    points_orig = (points_orig+1.0)/2.0
-    pos_vis = np.zeros((res,res,3))
-    pos_vis[...,:2] = points_orig.numpy().transpose(0, 2, 3, 1)[0]
-    pos_vis[...,:2] *= msks_orig.numpy().transpose(0, 2, 3, 1)[0]
+    images_gt = jt.array(images)
+    images_gt = images_gt.permute(0,2,3,1)[...,:3]
+
+    images_gt[msks_orig[:,0,...]==0] = bg_img[msks_orig[0,0]==0]
+    image = images_gt[0].numpy()
+    imageio.imsave(os.path.join(args.output_dir, 'gt.jpg'), (255*image[...,:3]).astype(np.uint8))
+
+    #points_orig = (points_orig+1.0)/2.0
+    #pos_vis = np.zeros((res,res,3))
+    #pos_vis[...,:2] = points_orig.numpy().transpose(0, 2, 3, 1)[0]
+    #pos_vis[...,:2] *= msks_orig.numpy().transpose(0, 2, 3, 1)[0]
+    #print(image_gt_torch.shape)
     #cv2.imwrite("tmp.png",(pos_vis*255).astype(np.uint8))
     #exit()
-    writer = imageio.get_writer(os.path.join(args.output_dir, 'rotation.gif'), mode='I')
-    images_gt = jt.array(images)
-    image_gt_torch = torch.from_numpy(images_gt.numpy().transpose((0, 2, 3, 1)))
-    optimizer = nn.Adam(model.parameters(), 0.01)
-    matcher = Matcher(res,device)
-    
-    image = images_gt.permute(0,2,3,1).numpy()[0]
-    imageio.imsave(os.path.join(args.output_dir, 'deform_gt.png'), (255*image).astype(np.uint8))
-            
 
-    loop = tqdm.tqdm(list(range(0, 1000)))
+    writer = imageio.get_writer(os.path.join(args.output_dir, 'rotation.gif'), mode='I')
+    image_gt_torch = torch.from_numpy(images_gt.numpy())
+
+    
+    model = Furniture(os.path.join(args.template_mesh,"init")) 
+    optimizer = nn.Adam(model.displaces+model.rotations, 0.02)
+    matcher = Matcher(res,device)
+    loop = tqdm.tqdm(list(range(0, 500)))
+    
     for i in loop:
-        mesh = model(args.batch_size)
+        mesh = model()
         images_pred, points, msks = renderer.render_mesh(mesh, mode='silhouettes')
         points = (points+1.0)/2.0
-        images_pred = jt.array(images_pred).permute(0,2,3,1)
+        images_pred = jt.array(images_pred).permute(0,2,3,1)[...,:3]
         points = jt.array(points).permute(0,2,3,1)
         msks = jt.array(msks).permute(0,2,3,1)
-        loss = jt.sum(images_pred)+jt.sum(points)*0
-        optimizer.step(loss)
-        continue
-
+        images_pred[msks[...,0]==0] = bg_img[msks[0,...,0]==0]
         image_torch = torch.from_numpy(images_pred.data).to(device).requires_grad_()
         points_torch = torch.from_numpy(points.data).to(device).requires_grad_()
         msks_torch = torch.from_numpy(msks.data).to(device)
@@ -138,15 +220,14 @@ def main():
         loop.set_description('Loss: %.4f'%(loss.item()))
         optimizer.step(loss)
         
-        #if i % 100 == 0:
-        #    image = images_pred.numpy()[0]
-        #    imageio.imsave(os.path.join(args.output_dir, 'deform_%05d.png'%i), (255*image).astype(np.uint8))
-        #    writer.append_data((255*image).astype(np.uint8))
-        #print(model.displace)
+        if i % 10 == 0:
+            image = images_pred.numpy()[0][...,:3]
+            imageio.imsave(os.path.join(args.output_dir, 'deform_%05d.jpg'%i), (255*image).astype(np.uint8))
+            writer.append_data((255*image).astype(np.uint8))
         
     writer.close()
     # save optimized mesh
-    model(1).save_obj(os.path.join(args.output_dir, 'final.obj'), save_texture=True)
+    model().save_obj(os.path.join(args.output_dir, 'final.obj'), save_texture=True)
     print(f"Cost {time.time() - sta} secs.")
 
 

@@ -1,10 +1,7 @@
 
 
 
-import jittor as jt
 
-from jittor import nn
-jt.flags.use_cuda = 1
 
 import torch
 import os
@@ -15,6 +12,10 @@ import cv2
 import argparse
 import jrender as jr
 
+import jittor as jt
+
+from jittor import nn
+jt.flags.use_cuda = 1
 
 import time
 if torch.cuda.is_available():

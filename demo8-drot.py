@@ -1,5 +1,5 @@
 
-
+#
 
 
 
@@ -23,6 +23,7 @@ if torch.cuda.is_available():
     torch.cuda.set_device(device)
 else:
     device = torch.device("cpu")
+#pip install geomloss[full] pykeops
 from geomloss import SamplesLoss
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -44,6 +45,7 @@ class SimpleModel(nn.Module):
     def execute(self, batch_size):
         vertices = self.vertices+self.displace
         return jr.Mesh(vertices.repeat(batch_size, 1, 1), self.faces.repeat(batch_size, 1, 1), dr_type='softras', textures = self.textures)
+
 def _axis_angle_rotation(axis: str, angle):
     """
     Return the rotation matrices for one of the rotations about an axis
@@ -76,6 +78,7 @@ def euler_angles_to_matrix(euler_angles, convention="XYZ"):
         for c, e in zip(convention, jt.unbind(euler_angles, -1))
     ]
     return jt.matmul(jt.matmul(matrices[0], matrices[1]), matrices[2])
+
 class Furniture(nn.Module):
     def __init__(self, template_path):
         super(Furniture, self).__init__()
@@ -147,9 +150,9 @@ def main():
     parser.add_argument('-c', '--camera-input', type=str, 
         default=os.path.join(data_dir, 'camera.npy'))
     parser.add_argument('-t', '--template-mesh', type=str, 
-        default=os.path.join(data_dir, 'obj/spot/spot_triangulated.obj'))
+        default=os.path.join(data_dir, 'furniture'))
     parser.add_argument('-o', '--output-dir', type=str, 
-        default=os.path.join(data_dir, 'results/output_drl_fur'))
+        default=os.path.join(data_dir, 'results/output_drot_furniture'))
     parser.add_argument('-b', '--batch-size', type=int,
         default=1)
     args = parser.parse_args()
@@ -193,7 +196,7 @@ def main():
     #cv2.imwrite("tmp.png",(pos_vis*255).astype(np.uint8))
     #exit()
 
-    writer = imageio.get_writer(os.path.join(args.output_dir, 'rotation.gif'), mode='I')
+    writer = imageio.get_writer(os.path.join(args.output_dir, 'process.gif'), mode='I')
     image_gt_torch = torch.from_numpy(images_gt.numpy())
 
     
